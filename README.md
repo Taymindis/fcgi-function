@@ -97,7 +97,7 @@ Available options:
       fastcgi_pass 127.0.0.1:2005;
     }
 
-***You will see the FN_HANDLER is function name mapping with the function inside simple_service code.***
+***You will see the FN_HANDLER is function name mapping with the function inside simple_service code, the fastcgi port 2005 is the service you start with(please look at step 10 for more details.***
 
 
 ### 12. start the nginx server
