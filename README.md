@@ -34,17 +34,29 @@ cmake and make
 
 ### 7. the result will be
 Install the project...
+
 -- Install configuration: ""
+
 -- Installing: /usr/local/lib/libfeedy.so
+
 -- Installing: /usr/local/lib/libfeedy.a
+
 -- Installing: /usr/local/include/restfcgi/feedy.h
+
 -- Installing: /usr/local/include/restfcgi/fdy_json.h
+
 -- Installing: /usr/local/include/restfcgi/fdy_hash.h
+
 -- Installing: /usr/local/include/restfcgi/fdy_LFHashTable.h
+
 -- Installing: /usr/local/include/restfcgi/fdy_array.h
+
 -- Installing: /usr/local/include/restfcgi/fdy_sarray.h
+
 -- Installing: /usr/local/include/restfcgi/fdy_buf.h
+
 -- Installing: /usr/local/include/restfcgi/fdy_pool.h
+
 
 ### 8. build a simple program by execute 
 
@@ -59,17 +71,29 @@ Install the project...
 it will result:-
 Available options:
 	-a	the ip address which binding to
+	
 	-p	port number to specified, not for -s
+	
 	-s	unix domain socket path to generate, not for -p
+	
 	-q	number of socket backlog
+	
 	-w	number of worker process
+	
 	-l	log file path
+	
 	-e	signal handling
+	
 	-f	Fork Daemon process
+	
 	-d	Run on debug Mode
+	
 	-o	Dynamic Link shared object file
+	
 	-h	display usage
+	
 	-v	display version
+	
 
 ### 10. simple start a service by execute 
 
@@ -125,13 +149,23 @@ Available options:
 ### 1. Go to root_directory/build folder -- make sure build content is still existed.
 ### 2. type "sudo make uninstall" 
 Then result
+
 -- Uninstalling /usr/local/lib/libfeedy.so
+
 -- Uninstalling /usr/local/lib/libfeedy.a
+
 -- Uninstalling /usr/local/include/restfcgi/feedy.h
+
 -- Uninstalling /usr/local/include/restfcgi/fdy_json.h
+
 -- Uninstalling /usr/local/include/restfcgi/fdy_hash.h
+
 -- Uninstalling /usr/local/include/restfcgi/fdy_LFHashTable.h
+
 -- Uninstalling /usr/local/include/restfcgi/fdy_array.h
+
 -- Uninstalling /usr/local/include/restfcgi/fdy_sarray.h
+
 -- Uninstalling /usr/local/include/restfcgi/fdy_buf.h
+
 -- Uninstalling /usr/local/include/restfcgi/fdy_pool.h
