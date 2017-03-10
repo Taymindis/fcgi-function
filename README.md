@@ -7,6 +7,7 @@ cJSON libraries -- https://github.com/DaveGamble/cJSON
 fcgi library -- https://github.com/FastCGI-Archives/FastCGI.com
 cmake and make
 
+### Supported OS: LINUX
 
 ## Step of installation
 ### 1. Go to root directory
