@@ -3,8 +3,11 @@ feedyC is build by C Language. It is a Service build on top of FastCGI which pro
 
 ## Prerequisition Installed
 Nginx -- https://www.nginx.com/
+
 cJSON libraries -- https://github.com/DaveGamble/cJSON
+
 fcgi library -- https://github.com/FastCGI-Archives/FastCGI.com
+
 cmake and make
 
 ### Supported OS: LINUX
