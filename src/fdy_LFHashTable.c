@@ -30,6 +30,7 @@ int fdy_LF_free_(fdy_LFHashTable *lf_hashtable, struct fdy_LFNode_s *n) {
 	n->key = 0;
 	n->val = NULL;
 
+	// To make it unused slot
 	atomic_flag_clear_explicit(&n->used, memory_order_release);
 
 	return 1;
