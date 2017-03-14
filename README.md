@@ -16,10 +16,15 @@ cmake and make
 ### 1. Go to root directory
 ### 2. type 
 > mkdir build (if not existed)
+
 > cd build
+
 > cmake ..
+
 > make
+
 > sudo make install
+
 
 ### 3. the result will be
 Install the project...
