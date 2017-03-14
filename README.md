@@ -1,5 +1,5 @@
-# feedyC
-feedyC is build by C Language. It is a Service Interface build on top of FastCGI and Nginx which provided function handler support, it also provided useful collection tools to enhance the facilities. 
+# C-ServiceAPI
+C-ServiceAPI is build by C Language, It is a Service Interface build on top of FastCGI and Nginx which provided function handler support, it also provided useful collection tools to enhance the facilities. 
 
 ## Prerequisition Installed
 Nginx -- https://www.nginx.com/
@@ -15,27 +15,13 @@ cmake and make
 ## Step of installation
 ### 1. Go to root directory
 ### 2. type 
-
-> mkdir build
-
- if not existed
-### 3. type 
-
+> mkdir build (if not existed)
 > cd build
-
-### 4. type 
-
 > cmake ..
-
-### 5. type 
-
 > make
-
-### 6. type
-
 > sudo make install
 
-### 7. the result will be
+### 3. the result will be
 Install the project...
 
 -- Install configuration: ""
@@ -61,13 +47,13 @@ Install the project...
 -- Installing: /usr/local/include/restfcgi/fdy_pool.h
 
 
-### 8. build a simple program by execute 
+### 4. build a simple program by execute 
 
 > gcc ../services_sample/profile_service.c -lfeedy -lcjson -lfcgi
 > -rdynamic -o simple_service
 
 
-### 9. when you type 
+### 5. when you type 
 
 > ./simple_service
 
@@ -99,12 +85,12 @@ Available options:
 	-v	display version
 	
 
-### 10. simple start a service by execute 
+### 6. simple start a service by execute 
 
 > ./simple_service -p2005 -q200 -w200 -d
 
 
-### 11. Edit the nginx.conf in your nginx config folder by append in your server block:-
+### 7. Edit the nginx.conf in your nginx config folder by append in your server block:-
 
 	location /getProfile {
       add_header Allow "GET, POST, HEAD" always;
@@ -129,9 +115,9 @@ Available options:
 ***You will see the FN_HANDLER is function name mapping with the function inside simple_service code, the fastcgi port 2005 is the service you start with(please look at step 10 for more details.***
 
 
-### 12. start the nginx server
+### 8. start the nginx server
 
-### 13.  Using apache benchmark for get request load test
+### 9.  Using apache benchmark for get request load test
 
 > ab -c 100 -n 10000 http://127.0.0.1:80/getProfile
 
@@ -142,11 +128,6 @@ Available options:
 > http://127.0.0.1:80/postProfile
 
 *the payload.txt is inside the root directory*
-
-
-
-
-
 
 
 ## To uninstall.
