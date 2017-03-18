@@ -1,5 +1,5 @@
 # C-ServiceAPI
-C-ServiceAPI is build by C Language, It is a Service Interface build on top of FastCGI and Nginx which provided function handler support, it also provided useful collection tools to enhance the facilities. 
+Feedy C-ServiceAPI is build by C Language, It is a Service Interface build on top of FastCGI and Nginx which provided function handler support, it also provided useful collection tools to enhance the facilities. 
 
 ## Prerequisition Installed
 Nginx -- https://www.nginx.com/
