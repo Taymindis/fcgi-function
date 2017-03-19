@@ -1,5 +1,5 @@
-#ifndef __feedy_h__
-#define __feedy_h__
+#ifndef __csif_h__
+#define __csif_h__
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
@@ -8,7 +8,7 @@ extern "C" {
 #endif
 
 #ifdef FDYMEMDETECT
-#include <feedy/fdy_mem_detect.h>
+#include <csif/fdy_mem_detect.h>
 #endif
 
 #include <stdio.h>
@@ -23,13 +23,12 @@ extern "C" {
 #include <sys/time.h>
 
 // Build in cJSON plugin
-#include "fdy_json.h"
-#include "fdy_pool.h"
-#include "fdy_hash.h"
-#include "fdy_sarray.h"
-#include "fdy_array.h"
-#include "fdy_buf.h"
-#include "fdy_LFHashTable.h"
+#include "csif_json.h"
+#include "csif_pool.h"
+#include "csif_hash.h"
+#include "csif_map.h"
+#include "csif_buf.h"
+#include "csif_LFHashTable.h"
 
 #define FLOGGER_ stderr
 
@@ -40,10 +39,10 @@ extern "C" {
 #define FF_FEED  (0x0c)
 #define CARRIAGE_RETURN  (0x0d)
 
-extern char* fdy_nmap_func[];
+extern char* csif_nmap_func[];
 
-typedef struct feedy_s {
-	fdy_pool *pool;
+typedef struct {
+	csif_pool *pool;
 
 	// unsigned long int _identifier;
 
@@ -56,10 +55,10 @@ typedef struct feedy_s {
 	// char** query_params;
 	jmp_buf jump_err_buff;
 	sigset_t *curr_mask;
-} feedy_t;
+} csif_t;
 
 int no_debug(FILE *__restrict __stream, const char *__restrict __format, ...);
-int (*fdbg)(FILE *__restrict __stream, const char *__restrict __format, ...);
+int (*csif_dbg)(FILE *__restrict __stream, const char *__restrict __format, ...);
 
 static const char AMPERSAND_DELIM = '&';
 static const char EQ_DELIM = '=';
@@ -72,30 +71,30 @@ char* print_time(void);
 #define write_out(...) FCGX_FPrintF(request->out, __VA_ARGS__)
 #define get_param(KEY) FCGX_GetParam(KEY, request->envp)
 
-// #define get_json(feedy_t) feedy_t->json
-#define feedy_alloc(feedy_t, sz) falloc(&(feedy_t->pool), sz)
-#define feedy_pool_sz(feedy_t) blk_size(feedy_t->pool)
-//There is not free as feedy will free itself
+// #define get_json(csif_t) csif_t->json
+#define csif_alloc(csif_t, sz) falloc(&(csif_t->pool), sz)
+#define csif_pool_sz(csif_t) blk_size(csif_t->pool)
+//There is not free as csif will free itself
 
 #define STRINGIFY(x) #x
 #define STR(x) STRINGIFY(x)
 
 size_t slen(const char* str);
-int f_isspace(const char* s);
+int csif_isspace(const char* s);
 
 char *duplistr(const char *str);
 int is_empty(char *s);
 
-feedy_t *fdy_getFeedy(void);
+csif_t *csif_get_t(void);
 // char *getBodyContent(FCGX_Request *request);
-long fdy_readContent(FCGX_Request *request, char** content);
-void* fdy_getParam(const char *key, char* query_str);
+long csif_readContent(FCGX_Request *request, char** content);
+void* csif_getParam(const char *key, char* query_str);
 
 
-void fdy_write_http_status(FCGX_Request *request, uint16_t code);
-void fdy_write_default_header(FCGX_Request *request);
-void fdy_write_jsonp_header(FCGX_Request *request);
-void fdy_write_json_header(FCGX_Request *request);
+void csif_write_http_status(FCGX_Request *request, uint16_t code);
+void csif_write_default_header(FCGX_Request *request);
+void csif_write_jsonp_header(FCGX_Request *request);
+void csif_write_json_header(FCGX_Request *request);
 
 
 
@@ -105,7 +104,7 @@ void fdy_write_json_header(FCGX_Request *request);
 // #else
 // #define fdebug(M, ...)
 // #endif
-#define fdebug(M, ...) (*fdbg)(FLOGGER_, "DEBUG - %s - %s:%d: " M "\n", print_time(), __FILE__, __LINE__, ##__VA_ARGS__)
+#define fdebug(M, ...) (*csif_dbg)(FLOGGER_, "DEBUG - %s - %s:%d: " M "\n", print_time(), __FILE__, __LINE__, ##__VA_ARGS__)
 #define clean_errno() (errno == 0 ? "None" : strerror(errno))
 
 #define flog_err(M, ...) fprintf(FLOGGER_, "[ERROR] (%s - %s:%d: errno: %s) " M "\n", print_time(), __FILE__, __LINE__, clean_errno(),  ##__VA_ARGS__)

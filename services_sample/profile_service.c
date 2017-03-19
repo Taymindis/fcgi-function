@@ -1,18 +1,18 @@
-#include <restfcgi/feedy.h>
-// #include <feedy/fdy_mem_detect.h>
+#include <csif/csif.h>
+// #include <csif/csif_mem_detect.h>
 
 
 
-char* fdy_nmap_func[] = {"getProfile", "postError","postProfile", NULL};
+char* csif_nmap_func[] = {"getProfile", "postError","postProfile", NULL};
 
 
-int getProfile(FCGX_Request *request, feedy_t * feedy) {
+int getProfile(FCGX_Request *request, csif_t * csif) {
 	flog_info("%s\n", "you reach here with get Request");
 	write_out("Status: 200 OK\r\n");
 	write_out("Content-Type: text/plain\r\n\r\n");/* \r\n\r\n  means go to response message*/
 	write_out("%s\n", "you are here");
 
-	feedy_t *sameFeedy= fdy_getFeedy(); 
+	csif_t *sameFeedy= csif_get_t(); 
 
 	// printf("%s\n", sameFeedy->json);
 	// cJSON * ret;
@@ -21,7 +21,7 @@ int getProfile(FCGX_Request *request, feedy_t * feedy) {
 	// if (ss++ < 8) *(int *)NULL = 0;
 
 	if (sameFeedy->query_str) {
-		char *out = fdy_getParam("userId", sameFeedy->query_str);
+		char *out = csif_getParam("userId", sameFeedy->query_str);
 		if (out)
 			write_out("output= %s\n", out); //cjson undefined because only use it's own file
 	}
@@ -30,7 +30,7 @@ int getProfile(FCGX_Request *request, feedy_t * feedy) {
 	return 1;
 }
 
-int postError(FCGX_Request *request, feedy_t * feedy) {
+int postError(FCGX_Request *request, csif_t * csif) {
 	flog_info("%s\n", "you reach here with post Error test");
 	write_out("Status: 500 Internal Server Error\r\n");
 	write_out("Content-Type: text/plain\r\n\r\n");	
@@ -40,8 +40,8 @@ int postError(FCGX_Request *request, feedy_t * feedy) {
 }
 
 
-int postProfile(FCGX_Request *request, feedy_t * feedy) {
-	// fdy_buff *buffer = fbuf_init(get_param("QUERY_STRING"));
+int postProfile(FCGX_Request *request, csif_t * csif) {
+	// csif_buff *buffer = fbuf_init(get_param("QUERY_STRING"));
 	// write_out("Content-Type: text/plain\r\n\r\n");
 	// write_out("buffer size  = %d\n", buffer->size);
 	// write_out("buffer data  = %s\n", buffer->data);
@@ -51,9 +51,9 @@ int postProfile(FCGX_Request *request, feedy_t * feedy) {
 	// write_out("%s", "Data is ");
 	// write_out("%s\n", payload);
 
-	// not need to free, feedy handle it
+	// not need to free, csif handle it
 	char *payload;
-	long sz = fdy_readContent(request, &payload);
+	long sz = csif_readContent(request, &payload);
 	flog_info("the sz is = %ld", sz);
 	write_out("Status: 200 OK\r\n");
 	write_out("Content-Type: application/x-www-form-urlencoded\r\n\r\n");
@@ -84,7 +84,7 @@ int postProfile(FCGX_Request *request, feedy_t * feedy) {
 
 
 
-// int memcheck(FCGX_Request *request, feedy_t * feedy) {
+// int memcheck(FCGX_Request *request, csif_t * csif) {
 // 	// flog_info("%s\n", "you reach here");
 // 	write_out("Status: 200 OK\r\n");
 // 	write_out("Content-Type: text/plain\r\n\r\n"); \r\n\r\n  means go to response message

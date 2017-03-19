@@ -8,8 +8,8 @@ else(UNIX AND NOT APPLE)
     set(CMAKE_MACOSX_RPATH 1)
 endif (UNIX AND NOT APPLE)
 
-set(PROJ_FEEDY feedy)
-project(restfcgi C)
+set(PROJ_CSIF csif)
+project(csif C)
 
 # Some tweak parameters
 SET(PWD ${CMAKE_CURRENT_SOURCE_DIR})
@@ -23,16 +23,16 @@ SET(CMAKE_INSTALL_LIBDIR /usr/local/lib)
 ENDIF (NOT DEFINED CMAKE_INSTALL_LIBDIR)
 
 IF (NOT DEFINED CMAKE_INSTALL_INCLUDEDIR)
-SET(CMAKE_INSTALL_INCLUDEDIR /usr/local/include/restfcgi)
+SET(CMAKE_INSTALL_INCLUDEDIR /usr/local/include/csif)
 ENDIF(NOT DEFINED CMAKE_INSTALL_INCLUDEDIR)
 
-MESSAGE(STATUS "restfcgi LIBRARY DIRECTORY located at ${CMAKE_INSTALL_LIBDIR}")
+MESSAGE(STATUS "csif LIBRARY DIRECTORY located at ${CMAKE_INSTALL_LIBDIR}")
 message(STATUS "Current SOURCES DIRECTORY located at ${CMAKE_CURRENT_SOURCE_DIR}")
 message(STATUS "Current Binary DIRECTORY located at ${CMAKE_CURRENT_BINARY_DIR}")
 
 SET(LIBPATH /usr/lib /usr/local/lib)
 
-include_directories(include)
+include_directories(include /usr/local/include)
 
 add_definitions(-D_XOPEN_SOURCE)
 
@@ -73,7 +73,7 @@ SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wsign-compare -Iinclude -std=c11 -pedantic"
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
 # Not need to export dynamic symbol out, -rdyanmic only for user application
 # SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "-rdynamic") # LDFLAGS=
-#  gcc -fPIC -pie -o libfeedy.so src/feedy.c src/fdy_pool.c src/fdy_json.c src/fdy_cli.c -Iinclude -Wl,-E -Wl,--whole-archive -lfcgi -ldl -lcjson -Wl,--no-whole-archive
+#  gcc -fPIC -pie -o libcsif.so src/csif.c src/csif_pool.c src/csif_json.c src/csif_cli.c -Iinclude -Wl,-E -Wl,--whole-archive -lfcgi -ldl -lcjson -Wl,--no-whole-archive
 
 if(UNIX AND NOT APPLE)
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pie -Wl,-E")
@@ -91,58 +91,57 @@ add_custom_target(uninstall
 SET (INCLUDES include)
 SET (SRCDIR src)
 
-SET (SRCS ${SRCDIR}/feedy.c ${SRCDIR}/fdy_pool.c ${SRCDIR}/fdy_json.c ${SRCDIR}/fdy_hash.c ${SRCDIR}/fdy_LFHashTable.c ${SRCDIR}/fdy_array.c ${SRCDIR}/fdy_sarray.c ${SRCDIR}/fdy_buf.c ${SRCDIR}/fdy_cli.c)
-SET (HDRS ${INCLUDES}/feedy.h ${INCLUDES}/fdy_pool.h ${INCLUDES}/fdy_json.h ${INCLUDES}/fdy_hash.h ${INCLUDES}/fdy_LFHashTable.h ${INCLUDES}/fdy_array.h ${INCLUDES}/fdy_sarray.h ${INCLUDES}/fdy_buf.h)
+SET (SRCS ${SRCDIR}/csif.c ${SRCDIR}/csif_pool.c ${SRCDIR}/csif_json.c ${SRCDIR}/csif_hash.c ${SRCDIR}/csif_LFHashTable.c ${SRCDIR}/csif_map.c ${SRCDIR}/csif_buf.c ${SRCDIR}/csif_cli.c)
+SET (HDRS ${INCLUDES}/csif.h ${INCLUDES}/csif_pool.h ${INCLUDES}/csif_json.h ${INCLUDES}/csif_hash.h ${INCLUDES}/csif_LFHashTable.h ${INCLUDES}/csif_map.h ${INCLUDES}/csif_buf.h)
 
-add_library(${PROJ_FEEDY}.static STATIC ${HDRS} ${SRCS})
-set_target_properties(${PROJ_FEEDY}.static PROPERTIES OUTPUT_NAME ${PROJ_FEEDY})
+add_library(${PROJ_CSIF}.static STATIC ${HDRS} ${SRCS})
+set_target_properties(${PROJ_CSIF}.static PROPERTIES OUTPUT_NAME ${PROJ_CSIF})
 
-add_library(${PROJ_FEEDY} SHARED ${HDRS} ${SRCS})
+add_library(${PROJ_CSIF} SHARED ${HDRS} ${SRCS})
 
 link_directories(/usr/local/lib /usr/lib)
 
-# add_executable(restfcgi ${SRCDIR}/fdy_cli.c)
+# add_executable(csif ${SRCDIR}/csif_cli.c)
 
-# target_link_libraries(restfcgi ${PROJ_FEEDY})
-# target_link_libraries(restfcgi fcgi dl)
+# target_link_libraries(csif ${PROJ_CSIF})
+# target_link_libraries(csif fcgi dl)
 
 if(UNIX AND NOT APPLE)
-# target_link_libraries(${PROJ_FEEDY} ${LIB_DL}) #static link to fcgi
-target_link_libraries(${PROJ_FEEDY} fcgi dl pthread atomic)  #dynamic link to -ldl
-# target_link_libraries(${PROJ_FEEDY}.static ${LIB_DL}) #static link 
-target_link_libraries(${PROJ_FEEDY}.static fcgi dl pthread atomic) #dynamic link to -ldl
+# target_link_libraries(${PROJ_CSIF} ${LIB_DL}) #static link to fcgi
+target_link_libraries(${PROJ_CSIF} fcgi dl pthread atomic)  #dynamic link to -ldl
+# target_link_libraries(${PROJ_CSIF}.static ${LIB_DL}) #static link 
+target_link_libraries(${PROJ_CSIF}.static fcgi dl pthread atomic) #dynamic link to -ldl
 else(UNIX AND NOT APPLE)
-# target_link_libraries(${PROJ_FEEDY} ${LIB_DL}) #static link to fcgi
-target_link_libraries(${PROJ_FEEDY} fcgi dl pthread)  #dynamic link to -ldl
-# target_link_libraries(${PROJ_FEEDY}.static ${LIB_DL}) #static link 
-target_link_libraries(${PROJ_FEEDY}.static fcgi dl pthread) #dynamic link to -ldl
+# target_link_libraries(${PROJ_CSIF} ${LIB_DL}) #static link to fcgi
+target_link_libraries(${PROJ_CSIF} fcgi dl pthread)  #dynamic link to -ldl
+# target_link_libraries(${PROJ_CSIF}.static ${LIB_DL}) #static link 
+target_link_libraries(${PROJ_CSIF}.static fcgi dl pthread) #dynamic link to -ldl
 endif(UNIX AND NOT APPLE)	
 
 if(CJSON_LIB)
-# target_link_libraries(restfcgi cjson)
-target_link_libraries(${PROJ_FEEDY} cjson)
-target_link_libraries(${PROJ_FEEDY}.static cjson)
+# target_link_libraries(csif cjson)
+target_link_libraries(${PROJ_CSIF} cjson)
+target_link_libraries(${PROJ_CSIF}.static cjson)
 endif(CJSON_LIB)
 
-install(TARGETS ${PROJ_FEEDY} EXPORT ${PROJ_FEEDY}
+install(TARGETS ${PROJ_CSIF} EXPORT ${PROJ_CSIF}
 		ARCHIVE DESTINATION lib${LIB_SUFFIX}
 		LIBRARY DESTINATION lib${LIB_SUFFIX}
 		# RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 		)
-install(TARGETS ${PROJ_FEEDY}.static EXPORT ${PROJ_FEEDY}
+install(TARGETS ${PROJ_CSIF}.static EXPORT ${PROJ_CSIF}
 		ARCHIVE DESTINATION lib${LIB_SUFFIX}
 		LIBRARY DESTINATION lib${LIB_SUFFIX}
 		# RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 		)
-install(FILES ${INCLUDES}/feedy.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install(FILES ${INCLUDES}/fdy_json.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install(FILES ${INCLUDES}/fdy_hash.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install(FILES ${INCLUDES}/fdy_LFHashTable.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install(FILES ${INCLUDES}/fdy_array.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install(FILES ${INCLUDES}/fdy_sarray.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install(FILES ${INCLUDES}/fdy_buf.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install(FILES ${INCLUDES}/fdy_pool.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-# install(TARGETS restfcgi EXPORT restfcgi DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(FILES ${INCLUDES}/csif.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(FILES ${INCLUDES}/csif_json.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(FILES ${INCLUDES}/csif_hash.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(FILES ${INCLUDES}/csif_LFHashTable.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(FILES ${INCLUDES}/csif_map.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(FILES ${INCLUDES}/csif_buf.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(FILES ${INCLUDES}/csif_pool.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+# install(TARGETS csif EXPORT csif DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(CODE "execute_process(COMMAND ldconfig)")
 
 # IF (${CMAKE_BUILD_TYPE} MATCHES "Debug")

@@ -18,15 +18,15 @@
 #include <fcgiapp.h>
 #include <dlfcn.h>
 #include <pthread.h>
-#include "feedy.h"
+#include "csif.h"
 
-char* fdy_nmap_func[] = { NULL };
+char* csif_nmap_func[] = { NULL };
 
-fdy_sarray *dyna_funcs = NULL;
+csif_map *dyna_funcs = NULL;
 
-typedef int (*h)(FCGX_Request *, feedy_t*);
+typedef int (*h)(FCGX_Request *, csif_t*);
 
-struct fdy_handler {
+struct csif_handler {
     h handle;
 };
 
@@ -34,10 +34,10 @@ static const long MAX_STDIN = 10240;
 int no_debug(FILE *__restrict __stream, const char *__restrict __format, ...) {return 1;}
 
 char *appname; //global apps deployment
-static fdy_LFHashTable thread_table;
+static csif_LFHashTable thread_table;
 static int total_workers, remain_workers;
-void feedy_init(void);
-fdy_pool *fdy_getPool(void);
+void csif_init(void);
+csif_pool *csif_getPool(void);
 void* Malloc_Function(size_t sz);
 void Free_Function(void* v);
 
@@ -51,9 +51,6 @@ void* init_all_error_signal(void *v);
 static struct sigaction sa;
 
 void* Malloc_Function(size_t sz) {
-    // printf("%s\n", "Malloc------------------- ");
-    // fdy_pool* p = fdy_getPool();
-    // return falloc(&p, sz);
     return malloc(sz);
 }
 void Free_Function(void* v) {
@@ -61,9 +58,9 @@ void Free_Function(void* v) {
     free(v);
 }
 
-void feedy_init(void) {
-    fhash_set_allocation_fn(Malloc_Function, Free_Function);
-    fbuf_set_allocation_fn(Malloc_Function, Free_Function);
+void csif_init(void) {
+    csif_hash_set_alloc_fn(Malloc_Function, Free_Function);
+    csif_buf_set_alloc_fn(Malloc_Function, Free_Function);
 
 
     void *usr_req_handle = NULL;
@@ -76,16 +73,16 @@ void feedy_init(void) {
 
     int func_count = 0;
 
-    while (*(fdy_nmap_func + func_count++));
+    while (*(csif_nmap_func + func_count++));
 
     printf("total function = %d\n", --func_count); // Remove NULL
-    dyna_funcs = s_init_sarray(func_count, sizeof(struct fdy_handler));
+    dyna_funcs = csif_map_init(func_count, sizeof(struct csif_handler));
 
     for (int f = 0; f < func_count; f++) {
         // printf("%d\n", f);
-        struct fdy_handler *func = s_newObject(dyna_funcs, fdy_nmap_func[f]);
+        struct csif_handler *func = csif_map_assign(dyna_funcs, csif_nmap_func[f]);
 
-        *(void **) (&func->handle) = dlsym(usr_req_handle, fdy_nmap_func[f]);
+        *(void **) (&func->handle) = dlsym(usr_req_handle, csif_nmap_func[f]);
 
         if ((error = dlerror()) != NULL) {
             flog_err("%s\n", error);
@@ -102,7 +99,7 @@ void feedy_init(void) {
 
 /**To prevent -std=99 issue**/
 char *duplistr(const char *str) {
-    fdy_pool* p = fdy_getPool();
+    csif_pool* p = csif_getPool();
     int n = strlen(str) + 1;
 
     char *dup = falloc(&p, n);
@@ -160,21 +157,21 @@ sigset_t* handle_request(FCGX_Request *request) {
     // usleep(1000 * 1000 * 5); // 5 secs sleep
     // Dl_info info;
     char *value;
-    // int (*handler)(FCGX_Request *, feedy_t*);
+    // int (*handler)(FCGX_Request *, csif_t*);
     // static void *usr_req_handle = NULL;
     char **env = request->envp;
 
-    fdy_pool *p = create_pool(DEFAULT_BLK_SZ);
+    csif_pool *p = create_pool(DEFAULT_BLK_SZ);
 
     // fhash_lock(thread_table);
 
-    feedy_t *feedy = malloc(sizeof(feedy_t));
+    csif_t *_csif_ = malloc(sizeof(csif_t));
 
-    fdy_LF_put(&thread_table, pthread_self(), feedy);
+    csif_LF_put(&thread_table, pthread_self(), _csif_);
 
     // fhash_unlock(thread_table);
-    feedy->pool = p;
-    feedy->query_str = NULL;
+    _csif_->pool = p;
+    _csif_->query_str = NULL;
 
 
 
@@ -182,32 +179,32 @@ sigset_t* handle_request(FCGX_Request *request) {
     value = (char*)(uintptr_t) * (env) + 11;
 
     if (value != NULL) {
-        struct fdy_handler *fdyHandler = (struct fdy_handler*)s_getObject(dyna_funcs, value);
-        if (fdyHandler) {
+        struct csif_handler *handler_ = (struct csif_handler*)csif_map_get(dyna_funcs, value);
+        if (handler_) {
             if (strcmp(get_param("REQUEST_METHOD"), "GET") == 0) {
                 char* query_string = duplistr(get_param("QUERY_STRING"));
                 if (!is_empty(query_string))
-                    feedy->query_str = query_string;//parse_json_fr_args(query_string);
+                    _csif_->query_str = query_string;//parse_json_fr_args(query_string);
             }
 
             // trying to catch back to life from error
-            if (/*sig*/setjmp(feedy->jump_err_buff) == 999) {
+            if (/*sig*/setjmp(_csif_->jump_err_buff) == 999) {
                 flog_err("%s\n", "Critical Error Found!!!!!!!!!!!!!!!!!!!!");
                 // once catch , all signal are gone, you have to init again.
                 // init_all_error_signal(); // init back again
-                status_mask = ((feedy_t *)fdy_LF_get(&thread_table, pthread_self()))->curr_mask;
+                status_mask = ((csif_t *)csif_LF_get(&thread_table, pthread_self()))->curr_mask;
                 // remain_workers--;
                 goto SKIP_METHOD;
             }
             //
             // flog_info("dummy value = %d\n", 1);
-            // (*fdyHandler->handle)(request, feedy);
+            // (*fdyHandler->handle)(request, _csif_);
 
-            fdyHandler->handle(request, feedy);
+            handler_->handle(request, _csif_);
         } else {
             flog_err("%s\n", "Method not found!!!!!!!!!!!!!!!!!!!!");
 SKIP_METHOD:
-            fdy_write_http_status(request, 500);
+            csif_write_http_status(request, 500);
             write_out("Content-Type: text/plain\r\n\r\n");
             write_out("%s\n", "Method not found or memory corruption");
             write_out("%s\n", "check the log whether memory leak or method does not existed in your program");
@@ -233,11 +230,11 @@ SKIP_METHOD:
     // }
     // write_out("Done\n");
     // fhash_lock(thread_table);
-    feedy_t *f = fdy_LF_pop(&thread_table, pthread_self());
-    if (f) { //free the feedy
+    csif_t *f = csif_LF_pop(&thread_table, pthread_self());
+    if (f) { //free the _csif_
         destroy_pool(f->pool);
         free(f);
-        // fprintf(stdout, "%s\n", "successfully free feedy:");
+        // fprintf(stdout, "%s\n", "successfully free _csif_:");
         // fprintf(stdout, "%s\n", "successfully freed");
         // so far all are freed.
         // fhash_unlock(thread_table);
@@ -254,7 +251,7 @@ size_t slen(const char* str) {
     return (s - str);
 }
 
-int f_isspace(const char* s) {
+int csif_isspace(const char* s) {
     return (*s == SPACE || *s == TAB || *s == NEW_LINE ||
             *s == VERTICAL_TAB || *s == FF_FEED || *s == CARRIAGE_RETURN ? 1 : 0);
     // return (*s == '\t' || *s == '\n' ||
@@ -292,7 +289,7 @@ int file_existed(const char* fname) {
 //     }
 // }
 
-void* fdy_getParam(const char *key, char* query_str) {
+void* csif_getParam(const char *key, char* query_str) {
     int len;
     char *qs = query_str;
     if (key && *key && qs && *qs) {
@@ -304,7 +301,7 @@ void* fdy_getParam(const char *key, char* query_str) {
                 size_t sz = 0;
                 while (*qs && *qs++ != '&')sz++;
 
-                fdy_pool* p = fdy_getPool();
+                csif_pool* p = csif_getPool();
                 ret = falloc(&p, sz + 1);
                 memset(ret, 0, sz + 1);
                 return memcpy(ret, src, sz);
@@ -317,7 +314,7 @@ void* fdy_getParam(const char *key, char* query_str) {
     return NULL;
 }
 
-long fdy_readContent(FCGX_Request *request, char** content) {
+long csif_readContent(FCGX_Request *request, char** content) {
     char* clenstr = get_param("CONTENT_LENGTH");
     FCGX_Stream *in = request->in;
     long len;
@@ -330,7 +327,7 @@ long fdy_readContent(FCGX_Request *request, char** content) {
         /* Don't read more than the predefined limit  */
         if (len > MAX_STDIN) { len = MAX_STDIN; }
 
-        fdy_pool* p = fdy_getPool();
+        csif_pool* p = csif_getPool();
         *content = falloc(&p, len + 1);
         memset(*content, 0, len + 1);
         len = FCGX_GetStr(*content, len, in);
@@ -348,27 +345,27 @@ long fdy_readContent(FCGX_Request *request, char** content) {
     return len;
 }
 
-feedy_t *fdy_getFeedy(void) {
-    return (feedy_t *)fdy_LF_get(&thread_table, pthread_self());
+csif_t *csif_get_t(void) {
+    return (csif_t *)csif_LF_get(&thread_table, pthread_self());
 }
 
-fdy_pool *fdy_getPool(void) {
-    feedy_t *feedy = (feedy_t *)fdy_LF_get(&thread_table, pthread_self());
+csif_pool *csif_getPool(void) {
+    csif_t *_csif_ = (csif_t *)csif_LF_get(&thread_table, pthread_self());
 
-    if (feedy)
-        return feedy->pool;
+    if (_csif_)
+        return _csif_->pool;
     return NULL;
 }
 
 int init_socket(char* sock_port, int backlog, int workers, int forkable, int signalable, int debugmode, char* logfile, char* solib) {
 
-    if (!fdy_nmap_func[0]) {
-        printf("%s\n", "fdy_nmap_func has no defined...");
+    if (!csif_nmap_func[0]) {
+        printf("%s\n", "csif_nmap_func has no defined...");
         return 1;
     }
 
     if (debugmode) {
-        fdbg = fprintf;
+        csif_dbg = fprintf;
     }
     appname = solib;
     pid_t childPID;
@@ -414,7 +411,7 @@ int init_socket(char* sock_port, int backlog, int workers, int forkable, int sig
 int hook_socket(char* sock_port, int backlog, int workers) {
     int sock = 0;
     FCGX_Init();
-    feedy_init();
+    csif_init();
 
     remain_workers = 0;
     total_workers = workers;
@@ -435,7 +432,7 @@ int hook_socket(char* sock_port, int backlog, int workers) {
     }
 
     printf("%d workers in process", workers);
-    fdy_LF_init(&thread_table, workers + 10); // give some space
+    csif_LF_init(&thread_table, workers + 10); // give some space
     if (workers == 1) {
         FCGX_Request request;
         FCGX_InitRequest(&request, sock, 0);
@@ -607,8 +604,8 @@ void error_handler(int signo)
     //     flog_err("%s\n", "err sigaction(?) failed");
     // }
 
-    feedy_t *feedy = fdy_getFeedy();
-    feedy->curr_mask = &sa.sa_mask;
+    csif_t *_csif_ = csif_get_t();
+    _csif_->curr_mask = &sa.sa_mask;
 
     int fd = fileno(FLOGGER_);
     fseek(FLOGGER_, 0, SEEK_END);
@@ -631,7 +628,7 @@ void error_handler(int signo)
 //     }
 
 
-    /*sig*/longjmp(feedy->jump_err_buff, 999);
+    /*sig*/longjmp(_csif_->jump_err_buff, 999);
 }
 
 // int init_error_signal(f_singal_t *ferr_signals) {
@@ -673,7 +670,7 @@ void* init_all_error_signal(void *v) {
     return NULL;
 }
 
-void fdy_write_http_status(FCGX_Request * request, uint16_t code) {
+void csif_write_http_status(FCGX_Request * request, uint16_t code) {
 
     switch (code) {
     case 200:
@@ -693,14 +690,14 @@ void fdy_write_http_status(FCGX_Request * request, uint16_t code) {
     }
 }
 
-void fdy_write_default_header(FCGX_Request * request) {
+void csif_write_default_header(FCGX_Request * request) {
     write_out("Content-Type: application/x-www-form-urlencoded\r\n\r\n");
 }
 
-void fdy_write_jsonp_header(FCGX_Request * request) {
+void csif_write_jsonp_header(FCGX_Request * request) {
     write_out("Content-Type: application/javascript\r\n\r\n");
 }
 
-void fdy_write_json_header(FCGX_Request * request) {
+void csif_write_json_header(FCGX_Request * request) {
     write_out("Content-Type: application/json\r\n\r\n");
 }

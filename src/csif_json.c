@@ -4,16 +4,16 @@
 #include <errno.h>
 #include <string.h>
 #include <stdint.h>
-#include "feedy.h"
-#include "fdy_json.h"
+#include "csif.h"
+#include "csif_json.h"
 
 
 int parseCJson(char *text, cJSON **json_ptr);
 // cJSON* parseCJsonFromFile(char *filename, cJSON **json_ptr);
 int cjson_parse_prm_cb(void* item, char* key, char* val);
 cJSON *_cjson_parse_param_(char *f_payload);
-void* feed_create_cjson_obj(void);
-void* feed_create_cjson_arr(void);
+void* csif_create_cjson_obj(void);
+void* csif_create_cjson_arr(void);
 
 /*incubating*/
 /****JSON COMMON*/
@@ -30,13 +30,13 @@ cJSON *parse_json_fr_args(char *payload) {
 }
 
 cJSON *parse_json(char* content) {
-    cJSON *feedJSON = NULL;
+    cJSON *json_ = NULL;
     if (content && *content) {
         fdebug("%s\n", "do cJSON Parsing" );
-        parseCJson(content, &feedJSON);
-        // fdebug("cjson printing: %s\n", cJSON_Print(feedJSON));
+        parseCJson(content, &json_);
+        // fdebug("cjson printing: %s\n", cJSON_Print(json_));
     }
-    return feedJSON;
+    return json_;
 }
 
 
@@ -72,7 +72,7 @@ int parseCJson(char *text, cJSON **json_ptr) {
 
 /*CSJSON PARSE PARAM*/
 int cjson_parse_prm_cb(void* item, char* key, char* val) {
-    if (val && *val /*&& !f_isspace(val)*/) {
+    if (val && *val /*&& !csif_isspace(val)*/) {
         cJSON_AddStringToObject((cJSON*)item, key, val);
     } else {
         cJSON_AddNullToObject((cJSON*)item, key);
@@ -103,7 +103,7 @@ NEW_FIELD:
     r_pos = query_str;
     check_point = AMPERSAND_DELIM;
     if (*query_str) {
-        for (; (*query_str && !f_isspace(query_str) && (AMPERSAND_DELIM != *query_str)); query_str++);
+        for (; (*query_str && !csif_isspace(query_str) && (AMPERSAND_DELIM != *query_str)); query_str++);
         *query_str ^= check_point = *query_str;// check_point = *query_str; *query_str = 0;
 
         if (*r_pos) {
@@ -119,7 +119,7 @@ NEW_FIELD:
             if (callback(obj, l_pos, r_pos) == 0)
                 return 0; // memory failed
 
-            if (f_isspace(&check_point)) {
+            if (csif_isspace(&check_point)) {
                 goto END_FIELD;
             }
 
@@ -149,14 +149,14 @@ void* cjson_get_index(cJSON *item, int i) {
 
 /***Incubating****/
 void* create_json_obj(void) {
-    return feed_create_cjson_obj();
+    return csif_create_cjson_obj();
 }
 
 void* create_json_arr(void) {
-    return feed_create_cjson_arr();
+    return csif_create_cjson_arr();
 }
 
-void* feed_create_cjson_obj(void) {
+void* csif_create_cjson_obj(void) {
 
     cJSON *obj = cJSON_CreateObject();
     if (!obj) {
@@ -170,7 +170,7 @@ void* feed_create_cjson_obj(void) {
 
 }
 
-void* feed_create_cjson_arr(void) {
+void* csif_create_cjson_arr(void) {
     cJSON *arr = cJSON_CreateArray();
 
     if (!arr) {

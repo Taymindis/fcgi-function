@@ -1,49 +1,49 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "fdy_pool.h"
+#include "csif_pool.h"
 
 /***Author: cloudleware , so far this is only applicable per thread, not for multithread ***/
 
 
 void* mem_align(size_t size);
 
-fdy_pool* create_pool( size_t size ) {
-    fdy_pool * p = (fdy_pool*)mem_align(size + sizeof(fdy_pool));
-    p->next = (void*)&p[1]; //p + sizeof(fdy_pool)
+csif_pool* create_pool( size_t size ) {
+    csif_pool * p = (csif_pool*)mem_align(size + sizeof(csif_pool));
+    p->next = (void*)&p[1]; //p + sizeof(csif_pool)
     p->end = (void*)((uintptr_t)p->next + size);
     return p;    // p->memblk = //mem_align( 16, DEFAULT_BLK_SZ);
 }
 
-void destroy_pool( fdy_pool *p ) {
+void destroy_pool( csif_pool *p ) {
     free(p);
 }
 
-size_t mem_left( fdy_pool *p ) {
+size_t mem_left( csif_pool *p ) {
     return (uintptr_t) p->end - (uintptr_t) p->next;
 }
 
-size_t blk_size( fdy_pool *p ) {
+size_t blk_size( csif_pool *p ) {
     return (uintptr_t) p->end - (uintptr_t) (void*)&p[1];
 }
 
-fdy_pool* re_create_pool( fdy_pool *curr_p) {
+csif_pool* re_create_pool( csif_pool *curr_p) {
     size_t totalSize = blk_size(curr_p);
     size_t newSize = totalSize + totalSize;
-    fdy_pool *newp = (fdy_pool*)mem_align(sizeof(fdy_pool) + newSize);
-    memcpy((void*)newp, (void*)curr_p, sizeof(fdy_pool));
+    csif_pool *newp = (csif_pool*)mem_align(sizeof(csif_pool) + newSize);
+    memcpy((void*)newp, (void*)curr_p, sizeof(csif_pool));
     memcpy((void*)&newp[1], (void*)&curr_p[1], totalSize);
-    newp->next = (void*)&newp[1]; //p + sizeof(fdy_pool)
+    newp->next = (void*)&newp[1]; //p + sizeof(csif_pool)
     newp->end =  (void*)((uintptr_t)newp->next + newSize);
     newp->next = (void*) ((uintptr_t) newp->next + totalSize);
     destroy_pool(curr_p);
     return newp;
 }
 
-void * falloc( fdy_pool **p, size_t size ) {
-    fdy_pool *curr_p = *p;
+void * falloc( csif_pool **p, size_t size ) {
+    csif_pool *curr_p = *p;
     if ( mem_left(*p) < size ) {
-        *p = curr_p = (fdy_pool*)re_create_pool(*p);
+        *p = curr_p = (csif_pool*)re_create_pool(*p);
     }
     void *mem = (void*)curr_p->next;
     curr_p->next = (void*) ((uintptr_t)curr_p->next +  size);
@@ -66,7 +66,7 @@ mem_align(size_t size) //alignment => 16
     printf("posix_memalign: %p:%uz @%uz \n", p, size, ALIGNMENT);
 #else
     // printf("%s\n", "Using Malloc");
-    p = malloc(size + sizeof(fdy_pool));
+    p = malloc(size + sizeof(csif_pool));
 
 #endif
     return p;

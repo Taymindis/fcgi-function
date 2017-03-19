@@ -31,31 +31,30 @@ Install the project...
 
 -- Install configuration: ""
 
--- Installing: /usr/local/lib/libfeedy.so
+-- Installing: /usr/local/lib/libcsif.so
 
--- Installing: /usr/local/lib/libfeedy.a
+-- Installing: /usr/local/lib/libcsif.a
 
--- Installing: /usr/local/include/restfcgi/feedy.h
+-- Installing: /usr/local/include/csif/csif.h
 
--- Installing: /usr/local/include/restfcgi/fdy_json.h
+-- Installing: /usr/local/include/csif/fdy_json.h
 
--- Installing: /usr/local/include/restfcgi/fdy_hash.h
+-- Installing: /usr/local/include/csif/fdy_hash.h
 
--- Installing: /usr/local/include/restfcgi/fdy_LFHashTable.h
+-- Installing: /usr/local/include/csif/fdy_LFHashTable.h
 
--- Installing: /usr/local/include/restfcgi/fdy_array.h
+-- Installing: /usr/local/include/csif/fdy_array.h
 
--- Installing: /usr/local/include/restfcgi/fdy_sarray.h
+-- Installing: /usr/local/include/csif/fdy_sarray.h
 
--- Installing: /usr/local/include/restfcgi/fdy_buf.h
+-- Installing: /usr/local/include/csif/fdy_buf.h
 
--- Installing: /usr/local/include/restfcgi/fdy_pool.h
+-- Installing: /usr/local/include/csif/fdy_pool.h
 
 
 ### 4. build a simple program by execute 
 
-> gcc ../services_sample/profile_service.c -lfeedy -lcjson -lfcgi
-> -rdynamic -o simple_service
+> gcc ../services_sample/profile_service.c -lcsif -lcjson -lfcgi -rdynamic -o simple_service
 
 
 ### 5. when you type 
@@ -129,8 +128,7 @@ Available options:
 
 #### For post request load test
 
-> ab -p "payload.txt" -T application/json -c 100 -n 10000
-> http://127.0.0.1:80/postProfile
+> ab -p "payload.txt" -T application/json -c 100 -n 10000 http://127.0.0.1:80/postProfile
 
 *the payload.txt is inside the root directory*
 
@@ -140,22 +138,22 @@ Available options:
 ### 2. type "sudo make uninstall" 
 Then result
 
--- Uninstalling /usr/local/lib/libfeedy.so
+-- Uninstalling /usr/local/lib/libcsif.so
 
--- Uninstalling /usr/local/lib/libfeedy.a
+-- Uninstalling /usr/local/lib/libcsif.a
 
--- Uninstalling /usr/local/include/restfcgi/feedy.h
+-- Uninstalling /usr/local/include/csif/csif.h
 
--- Uninstalling /usr/local/include/restfcgi/fdy_json.h
+-- Uninstalling /usr/local/include/csif/fdy_json.h
 
--- Uninstalling /usr/local/include/restfcgi/fdy_hash.h
+-- Uninstalling /usr/local/include/csif/fdy_hash.h
 
--- Uninstalling /usr/local/include/restfcgi/fdy_LFHashTable.h
+-- Uninstalling /usr/local/include/csif/fdy_LFHashTable.h
 
--- Uninstalling /usr/local/include/restfcgi/fdy_array.h
+-- Uninstalling /usr/local/include/csif/fdy_array.h
 
--- Uninstalling /usr/local/include/restfcgi/fdy_sarray.h
+-- Uninstalling /usr/local/include/csif/fdy_sarray.h
 
--- Uninstalling /usr/local/include/restfcgi/fdy_buf.h
+-- Uninstalling /usr/local/include/csif/fdy_buf.h
 
--- Uninstalling /usr/local/include/restfcgi/fdy_pool.h
+-- Uninstalling /usr/local/include/csif/fdy_pool.h

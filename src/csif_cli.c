@@ -7,7 +7,7 @@
 #include <sys/wait.h>
 #include <fcgiapp.h>
 
-#include "feedy.h"
+#include "csif.h"
 
 static void usage(void);
 char* concat(const char *s1, const  char *s2);
@@ -102,16 +102,13 @@ char** prepare_so(int argc, char *argv[]) {
   // *args++ = "-lfcgi";
   // *args++ = "-ldl";
   // *args++ = "-lcJSON";
-  // *args++ = "-lfeedy";
+  // *args++ = "-lcsif";
   *(args + argc) = NULL;
   return exec_;
 }
 
 int
 main (int argc, char *argv[]) {
-// #ifndef fdy_nmap_func
-// #error "Please declare your fdy_nmap_func to map with feedy"
-// #endif
 
   char *sock_port,
        *appname = NULL,
@@ -129,7 +126,7 @@ main (int argc, char *argv[]) {
     return -1;
   }
 
-  fdbg = &no_debug;
+  csif_dbg = &no_debug;
 
   if (strcmp(argv[1], "build") == 0) {
     char** exec_ = prepare_so(argc, argv);
@@ -177,7 +174,7 @@ main (int argc, char *argv[]) {
   if (appname && *appname) {
     int len = strlen(appname);
     if (appname[len - 3] == '.' && appname[len - 2] == 's' && appname[len - 1] == 'o' ) {
-      // char *install_lib[4] = {"mv", appname, "/usr/local/fcgirest/", NULL};
+      // char *install_lib[4] = {"mv", appname, "/usr/local/csif/", NULL};
       // execute(install_lib);
       init_socket(sock_port, backlog, workers, forkable, signalable, debugmode, logfile, concat("./", appname));
     } else {

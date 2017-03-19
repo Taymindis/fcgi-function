@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "fdy_LFHashTable.h"
+#include "csif_LFHashTable.h"
 
 /***
 * Author: cloudleware2015@gmail.com - taymindis
@@ -9,12 +9,12 @@
 * LockFree Hashtable does not care you modify share memory when other people using.
 * Versuib 0.0.1, 02-Nov-2016
 ****/
-void* fdy_LF_alloc_(fdy_LFHashTable *lf_hashtable);
-int fdy_LF_free_(fdy_LFHashTable *lf_hashtable, struct fdy_LFNode_s *n);
+void* csif_LF_alloc_(csif_LFHashTable *lf_hashtable);
+int csif_LF_free_(csif_LFHashTable *lf_hashtable, struct csif_LFNode_s *n);
 
-void* fdy_LF_alloc_(fdy_LFHashTable *lf_hashtable) {
+void* csif_LF_alloc_(csif_LFHashTable *lf_hashtable) {
 
-	struct fdy_LFNode_s * return_ = lf_hashtable->node_buf;
+	struct csif_LFNode_s * return_ = lf_hashtable->node_buf;
 
 RETRY:
 	while (atomic_flag_test_and_set_explicit(&return_->used, memory_order_acquire)) {
@@ -26,7 +26,7 @@ RETRY:
 	return return_;
 }
 
-int fdy_LF_free_(fdy_LFHashTable *lf_hashtable, struct fdy_LFNode_s *n) {
+int csif_LF_free_(csif_LFHashTable *lf_hashtable, struct csif_LFNode_s *n) {
 	n->key = 0;
 	n->val = NULL;
 
@@ -39,13 +39,13 @@ int fdy_LF_free_(fdy_LFHashTable *lf_hashtable, struct fdy_LFNode_s *n) {
 
 /*API Endpoint*/
 
-int fdy_LF_init(fdy_LFHashTable *lf_hashtable, size_t max_size) {
+int csif_LF_init(csif_LFHashTable *lf_hashtable, size_t max_size) {
 
 	lf_hashtable->total_size = max_size;
 	max_size += 3; // give some padding
 
 	/** Pre-allocate all nodes **/
-	lf_hashtable->node_buf = malloc(max_size * sizeof(struct fdy_LFNode_s));
+	lf_hashtable->node_buf = malloc(max_size * sizeof(struct csif_LFNode_s));
 
 	if (lf_hashtable->node_buf == NULL)
 		return 0;
@@ -67,10 +67,10 @@ int fdy_LF_init(fdy_LFHashTable *lf_hashtable, size_t max_size) {
 	return 0;
 }
 
-int fdy_LF_put(fdy_LFHashTable *lf_hashtable, LFKey key, void *value) {
+int csif_LF_put(csif_LFHashTable *lf_hashtable, LFKey key, void *value) {
 	// We add first to prevent any error;
 	if (atomic_fetch_add(&lf_hashtable->size, 1) < lf_hashtable->total_size) {
-		struct fdy_LFNode_s *node = fdy_LF_alloc_(lf_hashtable);
+		struct csif_LFNode_s *node = csif_LF_alloc_(lf_hashtable);
 		if (node) {
 			// atomic_fetch_add(&lf_hashtable->size, 1);
 			node->val = value;
@@ -86,10 +86,10 @@ int fdy_LF_put(fdy_LFHashTable *lf_hashtable, LFKey key, void *value) {
 	return 0;
 }
 
-void *fdy_LF_pop(fdy_LFHashTable *lf_hashtable, LFKey key) {
+void *csif_LF_pop(csif_LFHashTable *lf_hashtable, LFKey key) {
 	void * return_ = NULL;
 
-	struct fdy_LFNode_s *buffer = lf_hashtable->node_buf;
+	struct csif_LFNode_s *buffer = lf_hashtable->node_buf;
 
 	do {
 		if (((LFKey)buffer->key) == ((LFKey)key)) goto SUCCESS;
@@ -97,16 +97,16 @@ void *fdy_LF_pop(fdy_LFHashTable *lf_hashtable, LFKey key) {
 	// printf("%s by key %lu\n", "return null", key);
 SUCCESS:
 	return_ = buffer->val;
-	if (fdy_LF_free_(lf_hashtable, buffer)) {
+	if (csif_LF_free_(lf_hashtable, buffer)) {
 		atomic_fetch_sub(&lf_hashtable->size, 1);
 	}
 	return return_;
 }
 
-void *fdy_LF_get(fdy_LFHashTable *lf_hashtable, LFKey key) {
+void *csif_LF_get(csif_LFHashTable *lf_hashtable, LFKey key) {
 	void * return_ = NULL;
 
-	struct fdy_LFNode_s *buffer = lf_hashtable->node_buf;
+	struct csif_LFNode_s *buffer = lf_hashtable->node_buf;
 
 	do {
 		if (buffer->key == key) goto SUCCESS;
@@ -118,8 +118,8 @@ SUCCESS:
 	return return_;
 }
 
-// need to implement fdy_LF_read(fdy_LFHashTable *lf_hashtable, LFKey key)
+// need to implement csif_LF_read(csif_LFHashTable *lf_hashtable, LFKey key)
 
-void fdy_LF_destroy(fdy_LFHashTable *lf_hashtable) {
+void csif_LF_destroy(csif_LFHashTable *lf_hashtable) {
 	free(lf_hashtable->node_buf);
 }
