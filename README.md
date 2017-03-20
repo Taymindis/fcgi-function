@@ -31,25 +31,23 @@ Install the project...
 
 -- Install configuration: ""
 
--- Installing: /usr/local/lib/libcsif.so
+-- Installing: /usr/local/lib/libcsif.dylib
 
 -- Installing: /usr/local/lib/libcsif.a
 
 -- Installing: /usr/local/include/csif/csif.h
 
--- Installing: /usr/local/include/csif/fdy_json.h
+-- Installing: /usr/local/include/csif/csif_json.h
 
--- Installing: /usr/local/include/csif/fdy_hash.h
+-- Installing: /usr/local/include/csif/csif_hash.h
 
--- Installing: /usr/local/include/csif/fdy_LFHashTable.h
+-- Installing: /usr/local/include/csif/csif_LFHashTable.h
 
--- Installing: /usr/local/include/csif/fdy_array.h
+-- Installing: /usr/local/include/csif/csif_map.h
 
--- Installing: /usr/local/include/csif/fdy_sarray.h
+-- Installing: /usr/local/include/csif/csif_buf.h
 
--- Installing: /usr/local/include/csif/fdy_buf.h
-
--- Installing: /usr/local/include/csif/fdy_pool.h
+-- Installing: /usr/local/include/csif/csif_pool.h
 
 
 ### 4. build a simple program by execute 
@@ -138,22 +136,21 @@ Available options:
 ### 2. type "sudo make uninstall" 
 Then result
 
--- Uninstalling /usr/local/lib/libcsif.so
+-- Uninstalling /usr/local/lib/libcsif.dylib
 
 -- Uninstalling /usr/local/lib/libcsif.a
 
 -- Uninstalling /usr/local/include/csif/csif.h
 
--- Uninstalling /usr/local/include/csif/fdy_json.h
+-- Uninstalling /usr/local/include/csif/csif_json.h
 
--- Uninstalling /usr/local/include/csif/fdy_hash.h
+-- Uninstalling /usr/local/include/csif/csif_hash.h
 
--- Uninstalling /usr/local/include/csif/fdy_LFHashTable.h
+-- Uninstalling /usr/local/include/csif/csif_LFHashTable.h
 
--- Uninstalling /usr/local/include/csif/fdy_array.h
+-- Uninstalling /usr/local/include/csif/csif_map.h
 
--- Uninstalling /usr/local/include/csif/fdy_sarray.h
+-- Uninstalling /usr/local/include/csif/csif_buf.h
 
--- Uninstalling /usr/local/include/csif/fdy_buf.h
+-- Uninstalling /usr/local/include/csif/csif_pool.h
 
--- Uninstalling /usr/local/include/csif/fdy_pool.h
