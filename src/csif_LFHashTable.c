@@ -7,7 +7,7 @@
 * Lock Free hashtable, The faster travese and read, free and writeable
 * For single/multithreading purposes.
 * LockFree Hashtable does not care you modify share memory when other people using.
-* Versuib 0.0.1, 02-Nov-2016
+* Version 0.0.1, 02-Nov-2016
 ****/
 void* csif_LF_alloc_(csif_LFHashTable *lf_hashtable);
 int csif_LF_free_(csif_LFHashTable *lf_hashtable, struct csif_LFNode_s *n);
@@ -21,6 +21,7 @@ RETRY:
 		return_++;
 	}
 
+	// To identify if LFNode is NULL but still got slot, need to retry to find a slot, it might happen when reach the last slot
 	if (return_ == NULL && atomic_load(&lf_hashtable->size) < lf_hashtable->total_size) goto RETRY;
 
 	return return_;
