@@ -1,11 +1,6 @@
 #include <csif/csif.h>
 // #include <csif/csif_mem_detect.h>
 
-
-
-char* csif_nmap_func[] = {"getProfile", "postError","postProfile", NULL};
-
-
 int getProfile(FCGX_Request *request, csif_t * csif) {
 	flog_info("%s\n", "you reach here with get Request");
 	write_out("Status: 200 OK\r\n");
@@ -80,6 +75,11 @@ int postProfile(FCGX_Request *request, csif_t * csif) {
 
 
 	return 1;
+}
+
+int main (int argc, char *argv[]) {
+char* csif_nmap_func[] = {"getProfile", "postError","postProfile", NULL};
+csif_main (argc, argv, csif_nmap_func);
 }
 
 

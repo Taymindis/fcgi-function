@@ -108,7 +108,7 @@ char** prepare_so(int argc, char *argv[]) {
 }
 
 int
-main (int argc, char *argv[]) {
+csif_main (int argc, char *argv[], char* all_funs[]) {
 
   char *sock_port,
        *appname = NULL,
@@ -176,12 +176,12 @@ main (int argc, char *argv[]) {
     if (appname[len - 3] == '.' && appname[len - 2] == 's' && appname[len - 1] == 'o' ) {
       // char *install_lib[4] = {"mv", appname, "/usr/local/csif/", NULL};
       // execute(install_lib);
-      init_socket(sock_port, backlog, workers, forkable, signalable, debugmode, logfile, concat("./", appname));
+      init_socket(sock_port, backlog, workers, forkable, signalable, debugmode, logfile, concat("./", appname), all_funs);
     } else {
       printf("%s\n", "only .so file if you need dynamic link your application, else please leave it blank");
     }
   } else {
-    init_socket(sock_port, backlog, workers, forkable, signalable, debugmode, logfile, NULL);
+    init_socket(sock_port, backlog, workers, forkable, signalable, debugmode, logfile, NULL, all_funs);
   }
 
   return 0;

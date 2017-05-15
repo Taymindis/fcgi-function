@@ -39,7 +39,7 @@ extern "C" {
 #define FF_FEED  (0x0c)
 #define CARRIAGE_RETURN  (0x0d)
 
-extern char* csif_nmap_func[];
+
 
 typedef struct {
 	csif_pool *pool;
@@ -63,7 +63,8 @@ int (*csif_dbg)(FILE *__restrict __stream, const char *__restrict __format, ...)
 static const char AMPERSAND_DELIM = '&';
 static const char EQ_DELIM = '=';
 
-int init_socket(char* sock_port, int backlog, int workers, int forkable, int signalable, int debugmode, char* logfile, char* solib);
+int csif_main (int argc, char *argv[], char* all_func[]);
+int init_socket(char* sock_port, int backlog, int workers, int forkable, int signalable, int debugmode, char* logfile, char* solib, char** csif_nmap_func);
 int file_existed(const char* fname);
 int setup_logger(char* out_file_path);
 char* print_time(void);

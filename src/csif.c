@@ -20,7 +20,7 @@
 #include <pthread.h>
 #include "csif.h"
 
-char* csif_nmap_func[] = { NULL };
+// char* csif_nmap_func[];
 
 csif_map *dyna_funcs = NULL;
 
@@ -36,7 +36,7 @@ int no_debug(FILE *__restrict __stream, const char *__restrict __format, ...) {r
 char *appname; //global apps deployment
 static csif_LFHashTable thread_table;
 static int total_workers, remain_workers;
-void csif_init(void);
+void csif_init(char** csif_nmap_func);
 csif_pool *csif_getPool(void);
 void* Malloc_Function(size_t sz);
 void Free_Function(void* v);
@@ -44,7 +44,7 @@ void Free_Function(void* v);
 void* multi_thread_accept(void* sock_ptr);
 // void *thread_admin(void* sock);
 void *add_on_workers(void* sock);
-int hook_socket(char* sock_port, int backlog, int workers);
+int hook_socket(char* sock_port, int backlog, int workers, char** csif_nmap_func);
 sigset_t* handle_request(FCGX_Request *request);
 // int init_error_signal(f_singal_t *ferr_signals);
 void* init_all_error_signal(void *v);
@@ -58,7 +58,7 @@ void Free_Function(void* v) {
     free(v);
 }
 
-void csif_init(void) {
+void csif_init(char** csif_nmap_func) {
     csif_hash_set_alloc_fn(Malloc_Function, Free_Function);
     csif_buf_set_alloc_fn(Malloc_Function, Free_Function);
 
@@ -357,7 +357,7 @@ csif_pool *csif_getPool(void) {
     return NULL;
 }
 
-int init_socket(char* sock_port, int backlog, int workers, int forkable, int signalable, int debugmode, char* logfile, char* solib) {
+int init_socket(char* sock_port, int backlog, int workers, int forkable, int signalable, int debugmode, char* logfile, char* solib, char** csif_nmap_func) {
 
     if (!csif_nmap_func[0]) {
         printf("%s\n", "csif_nmap_func has no defined...");
@@ -389,7 +389,7 @@ int init_socket(char* sock_port, int backlog, int workers, int forkable, int sig
                     pthread_create(&pth, NULL, init_all_error_signal, "Process Error Signal");
                 }
 
-                return hook_socket(sock_port, backlog, workers);
+                return hook_socket(sock_port, backlog, workers, csif_nmap_func);
             } else {}//Parent process
         } else {// fork failed
             printf("\n Fork failed..\n");
@@ -401,17 +401,17 @@ int init_socket(char* sock_port, int backlog, int workers, int forkable, int sig
             pthread_create(&pth, NULL, init_all_error_signal, "Process Error Signal");
         }
 
-        return hook_socket(sock_port, backlog, workers);
+        return hook_socket(sock_port, backlog, workers, csif_nmap_func);
     }
     return 0;
 }
 
 
 
-int hook_socket(char* sock_port, int backlog, int workers) {
+int hook_socket(char* sock_port, int backlog, int workers, char** csif_nmap_func) {
     int sock = 0;
     FCGX_Init();
-    csif_init();
+    csif_init(csif_nmap_func);
 
     remain_workers = 0;
     total_workers = workers;
