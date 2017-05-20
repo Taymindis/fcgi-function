@@ -34,6 +34,7 @@ cJSON *parse_json(char* content) {
     if (content && *content) {
         fdebug("%s\n", "do cJSON Parsing" );
         parseCJson(content, &json_);
+        fdebug("%s\n", "Done Parsing");
         // fdebug("cjson printing: %s\n", cJSON_Print(json_));
     }
     return json_;

@@ -2,10 +2,10 @@ cmake_minimum_required (VERSION 2.8)
 cmake_policy(VERSION 2.8)
 
 if(UNIX AND NOT APPLE)
-    set(LINUX TRUE)
+    set(CSIF_LINUX TRUE)
 else(UNIX AND NOT APPLE)
-    set(MACOSX TRUE)
-    set(CMAKE_MACOSX_RPATH 1)
+    set(CSIF_MACOSX TRUE)
+    set(CSIF_CMAKE_MACOSX_RPATH 1)
 endif (UNIX AND NOT APPLE)
 
 set(PROJ_CSIF csif)
@@ -77,6 +77,8 @@ SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
 
 if(UNIX AND NOT APPLE)
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pie -Wl,-E")
+else(UNIX AND NOT APPLE)
+add_definitions(-DCSIF_MACOSX=true)
 endif(UNIX AND NOT APPLE)
 
 # uninstall target

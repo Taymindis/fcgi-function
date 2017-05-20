@@ -105,7 +105,11 @@ void csif_write_json_header(FCGX_Request *request);
 // #else
 // #define fdebug(M, ...)
 // #endif
+#ifdef CSIF_MACOSX
+#define fdebug(M, ...) fprintf(FLOGGER_, "MACOSX -- DEBUG - %s - %s:%d: " M "\n", print_time(), __FILE__, __LINE__, ##__VA_ARGS__)
+#else
 #define fdebug(M, ...) (*csif_dbg)(FLOGGER_, "DEBUG - %s - %s:%d: " M "\n", print_time(), __FILE__, __LINE__, ##__VA_ARGS__)
+#endif
 #define clean_errno() (errno == 0 ? "None" : strerror(errno))
 
 #define flog_err(M, ...) fprintf(FLOGGER_, "[ERROR] (%s - %s:%d: errno: %s) " M "\n", print_time(), __FILE__, __LINE__, clean_errno(),  ##__VA_ARGS__)
