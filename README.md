@@ -10,7 +10,7 @@ fcgi library -- https://github.com/FastCGI-Archives/FastCGI.com
 
 cmake and make
 
-### Supported OS: LINUX
+### Supported OS: LINUX, MAC OSX
 
 ## Step of installation
 ### 1. Go to root directory
