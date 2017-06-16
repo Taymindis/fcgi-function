@@ -54,6 +54,8 @@ Install the project...
 
 > gcc ../services_sample/profile_service.c -lcsif -lcjson -lfcgi -rdynamic -o simple_service
 
+#### if C++ please use c++03
+> g++ -std=c++03 ../services_sample/cpp_profile_service.cpp -lcsif -lcjson -lfcgi -rdynamic -o simple_service
 
 ### 5. when you type 
 
