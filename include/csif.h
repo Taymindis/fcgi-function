@@ -87,6 +87,8 @@ char *duplistr(const char *str);
 int is_empty(char *s);
 
 csif_t *csif_get_t(void);
+
+void csif_setPool(csif_pool *p); // need to be external due to recreate_pool, need to reposition
 // char *getBodyContent(FCGX_Request *request);
 long csif_readContent(FCGX_Request *request, char** content);
 void* csif_getParam(const char *key, char* query_str);

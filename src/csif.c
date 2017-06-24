@@ -37,7 +37,9 @@ char *appname; //global apps deployment
 static csif_LFHashTable thread_table;
 static int total_workers, remain_workers;
 void csif_init(char** csif_nmap_func);
-csif_pool *csif_getPool(void);
+
+csif_pool *csif_getPool(void); // Should be internal
+
 void* Malloc_Function(size_t sz);
 void Free_Function(void* v);
 
@@ -355,6 +357,13 @@ csif_pool *csif_getPool(void) {
     if (_csif_)
         return _csif_->pool;
     return NULL;
+}
+
+void csif_setPool(csif_pool *p) {
+    csif_t *_csif_ = (csif_t *)csif_LF_get(&thread_table, pthread_self());
+
+    if (_csif_)
+         _csif_->pool = p;
 }
 
 int init_socket(char* sock_port, int backlog, int workers, int forkable, int signalable, int debugmode, char* logfile, char* solib, char** csif_nmap_func) {
