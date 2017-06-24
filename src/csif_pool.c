@@ -2,7 +2,6 @@
 #include <string.h>
 
 #include "csif_pool.h"
-#include "csif.h"
 
 /***Author: cloudleware , so far this is only applicable per thread, not for multithread ***/
 
@@ -47,11 +46,10 @@ csif_pool* re_create_pool( csif_pool *curr_p) {
 
 }
 
-void * falloc( csif_pool **p, size_t size ) {
+void * falloc( csif_pool **p, size_t size ){
     csif_pool *curr_p = *p;
     if ( mem_left(*p) < size ) {
         *p = curr_p = (csif_pool*)re_create_pool(*p);
-        csif_setPool(curr_p);
     }
     void *mem = (void*)curr_p->next;
     curr_p->next = (void*) ((uintptr_t)curr_p->next +  size); // alloc new memory

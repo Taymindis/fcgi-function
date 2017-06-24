@@ -38,8 +38,6 @@ static csif_LFHashTable thread_table;
 static int total_workers, remain_workers;
 void csif_init(char** csif_nmap_func);
 
-csif_pool *csif_getPool(void); // Should be internal
-
 void* Malloc_Function(size_t sz);
 void Free_Function(void* v);
 
@@ -101,10 +99,9 @@ void csif_init(char** csif_nmap_func) {
 
 /**To prevent -std=99 issue**/
 char *duplistr(const char *str) {
-    csif_pool* p = csif_getPool();
     int n = strlen(str) + 1;
-
-    char *dup = falloc(&p, n);
+    csif_t * csif = csif_get_t();
+    char *dup = falloc(&csif->pool, n);
     memset(dup, 0, n);
     if (dup)
         memcpy(dup, str, n - 1);
@@ -303,8 +300,8 @@ void* csif_getParam(const char *key, char* query_str) {
                 size_t sz = 0;
                 while (*qs && *qs++ != '&')sz++;
 
-                csif_pool* p = csif_getPool();
-                ret = falloc(&p, sz + 1);
+                csif_t * csif = csif_get_t();
+                ret = falloc(&csif->pool, sz + 1);
                 memset(ret, 0, sz + 1);
                 return memcpy(ret, src, sz);
             }
@@ -329,8 +326,8 @@ long csif_readContent(FCGX_Request *request, char** content) {
         /* Don't read more than the predefined limit  */
         if (len > MAX_STDIN) { len = MAX_STDIN; }
 
-        csif_pool* p = csif_getPool();
-        *content = falloc(&p, len + 1);
+        csif_t * csif = csif_get_t();
+        *content = falloc(&csif->pool, len + 1);
         memset(*content, 0, len + 1);
         len = FCGX_GetStr(*content, len, in);
     }
@@ -349,21 +346,6 @@ long csif_readContent(FCGX_Request *request, char** content) {
 
 csif_t *csif_get_t(void) {
     return (csif_t *)csif_LF_get(&thread_table, pthread_self());
-}
-
-csif_pool *csif_getPool(void) {
-    csif_t *_csif_ = (csif_t *)csif_LF_get(&thread_table, pthread_self());
-
-    if (_csif_)
-        return _csif_->pool;
-    return NULL;
-}
-
-void csif_setPool(csif_pool *p) {
-    csif_t *_csif_ = (csif_t *)csif_LF_get(&thread_table, pthread_self());
-
-    if (_csif_)
-         _csif_->pool = p;
 }
 
 int init_socket(char* sock_port, int backlog, int workers, int forkable, int signalable, int debugmode, char* logfile, char* solib, char** csif_nmap_func) {

@@ -73,7 +73,7 @@ char* print_time(void);
 #define get_param(KEY) FCGX_GetParam(KEY, request->envp)
 
 // #define get_json(csif_t) csif_t->json
-#define csif_alloc(csif_t, sz) falloc(&(csif_t->pool), sz)
+#define csif_alloc(csif_t, sz) falloc(&csif_t->pool, sz)
 #define csif_pool_sz(csif_t) blk_size(csif_t->pool)
 //There is not free as csif will free itself
 
@@ -88,7 +88,6 @@ int is_empty(char *s);
 
 csif_t *csif_get_t(void);
 
-void csif_setPool(csif_pool *p); // need to be external due to recreate_pool, need to reposition
 // char *getBodyContent(FCGX_Request *request);
 long csif_readContent(FCGX_Request *request, char** content);
 void* csif_getParam(const char *key, char* query_str);
