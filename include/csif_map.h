@@ -22,12 +22,6 @@ typedef struct {
 #endif
 } csif_map; // Map array
 
-
-// typedef struct
-// {
-// 	char *name;
-// } Object;
-
 typedef void *(*CSIF_MAP_MALLOC_FN)(size_t);
 typedef void (*CSIF_MAP_FREE_FN)(void*);
 
@@ -36,10 +30,10 @@ void csif_map_alloc_fn(CSIF_MAP_MALLOC_FN malloc_fun, CSIF_MAP_FREE_FN free_fun)
 typedef char* SKey;
 
 csif_map* csif_map_init(size_t length, size_t object_size);
-void* csif_map_assign(csif_map *map_, SKey key);
-void* csif_map_get(csif_map *map_, SKey key);
-int csif_map_read(csif_map *map_, SKey key, void *__return);
-int csif_map_splice(csif_map *map_, SKey key, void *__return) ;
+unsigned char* csif_map_assign(csif_map *map_, SKey key);
+unsigned char* csif_map_get(csif_map *map_, SKey key);
+// int csif_map_read(csif_map *map_, SKey key, unsigned char*__return);
+// int csif_map_splice(csif_map *map_, SKey key, unsigned char*__return) ;
 int csif_map_remove(csif_map *map_, SKey key);
 void csif_map_destroy(csif_map *map_);
 

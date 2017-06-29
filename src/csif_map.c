@@ -31,7 +31,7 @@ csif_map* csif_map_init(size_t length,  size_t object_size) {
 	return _map;
 }
 
-void* csif_map_assign(csif_map *map_, SKey key) {
+unsigned char* csif_map_assign(csif_map *map_, SKey key) {
 	if (map_->total - map_->used <= 0) {
 		map_->total *= 2;
 		unsigned char **newBucket = csif_map_malloc_fn(map_->total * sizeof(unsigned char*));
@@ -51,7 +51,7 @@ void* csif_map_assign(csif_map *map_, SKey key) {
 	return __return;
 }
 
-void* csif_map_get(csif_map *map_, SKey key) {
+unsigned char* csif_map_get(csif_map *map_, SKey key) {
 	unsigned char** bucket = map_->bucket;
 	int i, slen = strlen(key) + 1;
 	unsigned char* __return = NULL;
@@ -63,39 +63,39 @@ void* csif_map_get(csif_map *map_, SKey key) {
 	return __return;
 }
 
-int csif_map_read(csif_map *map_, SKey key, void *__return) {
-	unsigned char** bucket = map_->bucket;
-	int i, slen = strlen(key) + 1;
-	for (i = 0; i < map_->used; i++, bucket++) {
-		if (strcmp((SKey) *bucket, key) == 0) {
-			memcpy(__return, (void*)((uintptr_t)*bucket + slen), map_->type_sz + 1);
-			return 1;
-		}
-	}
+// int csif_map_read(csif_map *map_, SKey key, unsigned char*__return) {
+// 	unsigned char** bucket = map_->bucket;
+// 	int i, slen = strlen(key) + 1;
+// 	for (i = 0; i < map_->used; i++, bucket++) {
+// 		if (strcmp((SKey) *bucket, key) == 0) {
+// 			memcpy(__return, (unsigned char*)((uintptr_t)*bucket + slen), map_->type_sz + 1);
+// 			return 1;
+// 		}
+// 	}
 	
-	return 0;
-}
+// 	return 0;
+// }
 
 
-int csif_map_splice(csif_map *map_, SKey key, void *__return) {
-	unsigned char **src, **ptr = map_->bucket;
-	unsigned char *ret;
-	int i, slen = strlen(key) + 1;
-	for (i = 0; i < map_->used; i++, ptr++) {
-		// printf("%s\n", (SKey) *ptr);
-		if (strcmp((SKey) *ptr, key) == 0)goto FOUND;
-	}// while (ptr && *(ptr) && *(SKey*) *ptr != key) ptr++;
-	return 0;
-FOUND:
-	src = ptr;
-	ret = *ptr;
-	while (*(++src)) *ptr++ = *src;
-	*ptr = '\000';
-	memcpy(__return, (void*)((uintptr_t)ret + slen), map_->type_sz + 1);
-	csif_map_free_fn(ret);
-	map_->used--;
-	return 1;
-}
+// int csif_map_splice(csif_map *map_, SKey key, unsigned char*__return) {
+// 	unsigned char **src, **ptr = map_->bucket;
+// 	unsigned char *ret;
+// 	int i, slen = strlen(key) + 1;
+// 	for (i = 0; i < map_->used; i++, ptr++) {
+// 		// printf("%s\n", (SKey) *ptr);
+// 		if (strcmp((SKey) *ptr, key) == 0)goto FOUND;
+// 	}// while (ptr && *(ptr) && *(SKey*) *ptr != key) ptr++;
+// 	return 0;
+// FOUND:
+// 	src = ptr;
+// 	ret = *ptr;
+// 	while (*(++src)) *ptr++ = *src;
+// 	*ptr = '\000';
+// 	memcpy(__return, (unsigned char*)((uintptr_t)ret + slen), map_->type_sz + 1);
+// 	csif_map_free_fn(ret);
+// 	map_->used--;
+// 	return 1;
+// }
 
 int csif_map_remove(csif_map *map_, SKey key) {
 	unsigned char **src, **ptr = map_->bucket;
@@ -125,47 +125,50 @@ void csif_map_destroy(csif_map *map_) {
 	csif_map_free_fn(map_);
 }
 
-// int main(void) {
-// 	sarray  = init_sarray(3, sizeof(Object));
+// typedef struct {
+// 	char* name;
+// } Object;
 
-// 	// printf("first char array addressing at %lu\n", (sarray->bucket));
-// 	// printf("10th char array addressing at %lu\n", sarray->bucket + 10 * sizeof(char*));
-// 	// printf("last char array addressing at %lu\n", sarray->bucket + 50 * sizeof(char*));
+// int main(void) {
+// 	csif_map *sarray  = csif_map_init(3, sizeof(Object));
 
 // 	SKey p = "111111";
-// 	Object *o = (Object*) newObject(sarray, p);
+// 	Object *o = (Object*) csif_map_assign(sarray, p);
 // 	o->name = "csif_str_array: Hello, how are you?";
 
 // 	SKey p2 = "22";
-// 	Object *o2 = (Object*) newObject(sarray, p2);
+// 	Object *o2 = (Object*) csif_map_assign(sarray, p2);
 // 	o2->name = "csif_str_array: Hello, how are you 2?";
 
 // 	SKey p3 = "123456789012";
 // 	printf("%d\n", strlen(p3));
-// 	Object *o3 = (Object*) newObject(sarray, p3);
+// 	Object *o3 = (Object*) csif_map_assign(sarray, p3);
 // 	o3->name = "csif_str_array: Hello, how are you 3?";
 
-// 	// if (p == 1231231274891274124) {
-// 	// 	printf("%s\n", "true");
-// 	// }
-
-// 	Object *object = (Object*) getObject(sarray, "22");
+// 	Object *object = (Object*) csif_map_get(sarray, "22");
 
 // 	if (object)
 // 		printf("%s\n", object->name);
 
 
-// 	object = (Object*) spliceObject(sarray, "111111");
+// 	object = (Object*) csif_map_get(sarray, "111111");
 
 // 	if (object)
 // 		printf("%s\n", object->name);
 
-// 	object = (Object*) spliceObject(sarray, "123456789012");
+// 	object = (Object*) csif_map_get(sarray, "123456789012");
 
-// 	if (object) //this is not found ady.
+// 	if (object)
 // 		printf("%s\n", object->name);
-// // free(o2);
-// 	destroy(sarray);
+
+
+// 	if(csif_map_remove(sarray, "111111")) {
+// 		printf("%s\n", "Successfully removed");
+// 	}
+
+
+
+// 	csif_map_destroy(sarray);
 
 // 	return 0;
 // }
