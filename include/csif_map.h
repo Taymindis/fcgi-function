@@ -32,8 +32,8 @@ typedef char* SKey;
 csif_map* csif_map_init(size_t length, size_t object_size);
 unsigned char* csif_map_assign(csif_map *map_, SKey key);
 unsigned char* csif_map_get(csif_map *map_, SKey key);
-int csif_map_read(csif_map *map_, SKey key, unsigned char*__return);
-int csif_map_splice(csif_map *map_, SKey key, unsigned char*__return) ;
+//int csif_map_read(csif_map *map_, SKey key, unsigned char*__return);
+//int csif_map_splice(csif_map *map_, SKey key, unsigned char*__return) ;
 int csif_map_remove(csif_map *map_, SKey key);
 void csif_map_destroy(csif_map *map_);
 

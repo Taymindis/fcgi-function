@@ -64,37 +64,37 @@ unsigned char* csif_hash_get(csif_hash *hash_, Mkey key) {
 	return __return;
 }
 
- int csif_hash_read(csif_hash *hash_, Mkey key, unsigned char* __return) {
- 	unsigned char** bucket = hash_->bucket;
- 	int i;
- 	for (i = 0; i < hash_->used; i++, bucket++) {
- 		if (* (Mkey*) *bucket == key) {
- 			memcpy(__return,  (unsigned char*)((uintptr_t) *bucket + sizeof(Mkey)), hash_->type_sz + 1);
- 			return 1;
- 		}
- 	}
- 	return 0;
- }
-
-
- int csif_hash_splice(csif_hash *hash_, Mkey key, unsigned char* __return) {
- 	unsigned char **src, **ptr = hash_->bucket;
- 	unsigned char *ret;
- 	int i;
- 	for (i = 0; i < hash_->used; i++, ptr++) {
- 		if (* (Mkey*) *ptr == key)goto FOUND;
- 	}// while (ptr && *(ptr) && *(Mkey*) *ptr != key) ptr++;
- 	return 0;
- FOUND:
- 	src = ptr;
- 	ret = *ptr;
- 	while (*(++src)) *ptr++ = *src;
- 	*ptr = '\000';
- 	memcpy(__return, (unsigned char*)((uintptr_t)ret + sizeof(Mkey)), hash_->type_sz + 1);
- 	csif_hash_free_fn(ret);
- 	hash_->used--;
- 	return 1;
- }
+// int csif_hash_read(csif_hash *hash_, Mkey key, unsigned char* __return) {
+// 	unsigned char** bucket = hash_->bucket;
+// 	int i;
+// 	for (i = 0; i < hash_->used; i++, bucket++) {
+// 		if (* (Mkey*) *bucket == key) {
+// 			memcpy(__return,  (unsigned char*)((uintptr_t) *bucket + sizeof(Mkey)), hash_->type_sz + 1);
+// 			return 1;
+// 		}
+// 	}
+// 	return 0;
+// }
+//
+//
+// int csif_hash_splice(csif_hash *hash_, Mkey key, unsigned char* __return) {
+// 	unsigned char **src, **ptr = hash_->bucket;
+// 	unsigned char *ret;
+// 	int i;
+// 	for (i = 0; i < hash_->used; i++, ptr++) {
+// 		if (* (Mkey*) *ptr == key)goto FOUND;
+// 	}// while (ptr && *(ptr) && *(Mkey*) *ptr != key) ptr++;
+// 	return 0;
+// FOUND:
+// 	src = ptr;
+// 	ret = *ptr;
+// 	while (*(++src)) *ptr++ = *src;
+// 	*ptr = '\000';
+// 	memcpy(__return, (unsigned char*)((uintptr_t)ret + sizeof(Mkey)), hash_->type_sz + 1);
+// 	csif_hash_free_fn(ret);
+// 	hash_->used--;
+// 	return 1;
+// }
 
 int csif_hash_remove(csif_hash *hash_, Mkey key) {
 	unsigned char **src, **ptr = hash_->bucket;
@@ -159,9 +159,8 @@ void csif_hash_destroy(csif_hash *hash_) {
 // 	if (object)
 // 		printf("%s\n", object->name);
 //
-//    Object obj;
-// 	if(csif_hash_splice(hash, 111111, &obj)) {
-// 		printf("%s=%s\n", "Successfully removed", obj.name);
+// 	if(csif_hash_remove(hash, 111111)) {
+// 		printf("%s\n", "Successfully removed");
 // 	} else {
 // 		printf("%s\n", "Record Not Found");
 // 	}
