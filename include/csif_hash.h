@@ -20,7 +20,7 @@ void csif_hash_set_alloc_fn(CSIF_HASH_MALLOC_FN malloc_fun, CSIF_HASH_FREE_FN fr
 typedef struct {
 	unsigned char** bucket;
 	int used;
-	int total;
+	unsigned long total;
 	size_t type_sz;
 #ifdef SYNC
 	pthread_mutex_t mutex;
@@ -32,8 +32,8 @@ typedef unsigned long int Mkey;
 csif_hash* csif_hash_init(size_t length,  size_t object_size);
 unsigned char* csif_hash_assign(csif_hash *fhash, Mkey key);
 unsigned char* csif_hash_get(csif_hash *fhash, Mkey key);
-// int csif_hash_read(csif_hash *fhash, Mkey key, unsigned char* __return);
-// int csif_hash_splice(csif_hash *fhash, Mkey key, unsigned char* __return);
+ int csif_hash_read(csif_hash *fhash, Mkey key, unsigned char* __return);
+ int csif_hash_splice(csif_hash *fhash, Mkey key, unsigned char* __return);
 int csif_hash_remove(csif_hash *fhash, Mkey key);
 void csif_hash_destroy(csif_hash *fhash);
 
