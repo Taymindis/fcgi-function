@@ -80,7 +80,7 @@ void csif_init(char** csif_nmap_func) {
 
     for (int f = 0; f < func_count; f++) {
         // printf("%d\n", f);
-        struct csif_handler *func = csif_map_assign(dyna_funcs, csif_nmap_func[f]);
+        struct csif_handler *func = (struct csif_handler *)csif_map_assign(dyna_funcs, csif_nmap_func[f]);
 
         *(void **) (&func->handle) = dlsym(usr_req_handle, csif_nmap_func[f]);
 
