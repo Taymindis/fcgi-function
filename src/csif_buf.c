@@ -30,7 +30,7 @@ csif_buf_create(void) {
 }
 
 csif_buf *
-csif_buf_init(const char *s) {
+csif_buf_init(const unsigned char *s) {
 	csif_buf *buff_ = csif_buf_create();
 	csif_buf_add_(buff_, s);
 	return buff_;
@@ -48,7 +48,7 @@ csif_buf_add(csif_buf *buff_, void *buf, size_t new_size) {
 		memcpy(new_buf, buff_->data, buff_->size);
 		csif_buf_free_fn(buff_->data); //Not need to free as pool will free later.
 	}
-	buff_->data = (char*)new_buf; //after freed, assigned new address of data
+	buff_->data = (unsigned char*)new_buf; //after freed, assigned new address of data
 	memcpy(buff_->data + buff_->size , buf, new_size);
 	buff_->size += new_size;
 	// *(buff_->data + buff_->size ) = 0;
@@ -57,7 +57,7 @@ csif_buf_add(csif_buf *buff_, void *buf, size_t new_size) {
 }
 
 int
-csif_buf_add_(csif_buf *buff_, const char *s) {
+csif_buf_add_(csif_buf *buff_, const unsigned char *s) {
 	void *new_buf;
 	size_t size = strlen(s);
 
@@ -80,7 +80,7 @@ csif_buf_add_(csif_buf *buff_, const char *s) {
 	buff_->size += size;
 
 	*(buff_->data + buff_->size ) = 0;
-	// fbuf_free((char*)s);
+	// fbuf_free((unsigned char*)s);
 	return 1;
 }
 
@@ -98,13 +98,13 @@ int csif_buf_delete(csif_buf *buff_) {
 csif_buf* csif_buf_read_file(char* file_path) {
 	csif_buf *buff_ = csif_buf_create();
 
-	FILE *f; long len; char *data;
+	FILE *f; long len; unsigned char *data;
 	// cJSON *json_ptr;
 	f = fopen(file_path, "rb");
 	fseek(f, 0, SEEK_END);
 	len = ftell(f);
 	fseek(f, 0, SEEK_SET);
-	data = (char*)malloc(len + 1);
+	data = (unsigned char*)malloc(len + 1);
 	fread(data, 1, len, f); data[len] = '\0'; fclose(f);
 
 	csif_buf_add(buff_, data, len);
