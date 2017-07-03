@@ -30,7 +30,7 @@ csif_buf_create(void) {
 }
 
 csif_buf *
-csif_buf_init(const unsigned char *s) {
+csif_buf_init(const char *s) {
 	csif_buf *buff_ = csif_buf_create();
 	csif_buf_add_(buff_, s);
 	return buff_;
@@ -57,7 +57,7 @@ csif_buf_add(csif_buf *buff_, void *buf, size_t new_size) {
 }
 
 int
-csif_buf_add_(csif_buf *buff_, const unsigned char *s) {
+csif_buf_add_(csif_buf *buff_, const char *s) {
 	void *new_buf;
 	size_t size = strlen(s);
 
