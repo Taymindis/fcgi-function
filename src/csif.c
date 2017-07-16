@@ -21,6 +21,7 @@
 #include "csif.h"
 
 // char* csif_nmap_func[];
+#define _get_param_(KEY) FCGX_GetParam(KEY, request->envp)
 
 csif_map *dyna_funcs = NULL;
 
@@ -180,8 +181,8 @@ sigset_t* handle_request(FCGX_Request *request) {
     if (value != NULL) {
         struct csif_handler *handler_ = (struct csif_handler*)csif_map_get(dyna_funcs, value);
         if (handler_) {
-            if (strcmp(csif_get_param("REQUEST_METHOD"), "GET") == 0) {
-                char* query_string = duplistr(csif_get_param("QUERY_STRING"));
+            if (strcmp(_get_param_("REQUEST_METHOD"), "GET") == 0) {
+                char* query_string = duplistr(_get_param_("QUERY_STRING"));
                 if (!is_empty(query_string))
                     _csif_->query_str = query_string;//parse_json_fr_args(query_string);
             }
@@ -314,7 +315,7 @@ void* csif_getParam(const char *key, char* query_str) {
 }
 
 long csif_readContent(FCGX_Request *request, char** content) {
-    char* clenstr = csif_get_param("CONTENT_LENGTH");
+    char* clenstr = _get_param_("CONTENT_LENGTH");
     FCGX_Stream *in = request->in;
     long len;
 

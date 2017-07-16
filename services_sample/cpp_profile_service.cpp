@@ -63,15 +63,6 @@ int postError(FCGX_Request *request, csif_t * csif) {
 
 
 int postProfile(FCGX_Request *request, csif_t * csif) {
-	// csif_buff *buffer = fbuf_init(csif_get_param("QUERY_STRING"));
-	// csif_write_out("Content-Type: text/plain\r\n\r\n");
-	// csif_write_out("buffer size  = %d\n", buffer->size);
-	// csif_write_out("buffer data  = %s\n", buffer->data);
-	// fbuf_delete(buffer);
-	// char *payload = getBodyContent(request);
-	// csif_write_out("Content-Type: application/x-www-form-urlencoded\r\n\r\n");
-	// csif_write_out("%s", "Data is ");
-	// csif_write_out("%s\n", payload);
 
 	// not need to free, csif handle it
 	char *payload;
