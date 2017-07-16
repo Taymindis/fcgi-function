@@ -180,8 +180,8 @@ sigset_t* handle_request(FCGX_Request *request) {
     if (value != NULL) {
         struct csif_handler *handler_ = (struct csif_handler*)csif_map_get(dyna_funcs, value);
         if (handler_) {
-            if (strcmp(get_param("REQUEST_METHOD"), "GET") == 0) {
-                char* query_string = duplistr(get_param("QUERY_STRING"));
+            if (strcmp(csif_get_param("REQUEST_METHOD"), "GET") == 0) {
+                char* query_string = duplistr(csif_get_param("QUERY_STRING"));
                 if (!is_empty(query_string))
                     _csif_->query_str = query_string;//parse_json_fr_args(query_string);
             }
@@ -204,30 +204,30 @@ sigset_t* handle_request(FCGX_Request *request) {
             flog_err("%s\n", "Method not found!!!!!!!!!!!!!!!!!!!!");
 SKIP_METHOD:
             csif_write_http_status(request, 500);
-            write_out("Content-Type: text/plain\r\n\r\n");
-            write_out("%s\n", "Method not found or memory corruption");
-            write_out("%s\n", "check the log whether memory leak or method does not existed in your program");
+            csif_write_out("Content-Type: text/plain\r\n\r\n");
+            csif_write_out("%s\n", "Method not found or memory corruption");
+            csif_write_out("%s\n", "check the log whether memory leak or method does not existed in your program");
         }
     } else {
-        write_out("Content-Type: text/plain\r\n\r\n");
-        write_out("%s\n", "FN_HANDLER not found");
-        write_out("%s\n", "Please provide your FN_HANDLER in your config file");
-        write_out("%s\n", "For e.g nginx.conf fastcgi_param FN_HANDLER getProfile");
+        csif_write_out("Content-Type: text/plain\r\n\r\n");
+        csif_write_out("%s\n", "FN_HANDLER not found");
+        csif_write_out("%s\n", "Please provide your FN_HANDLER in your config file");
+        csif_write_out("%s\n", "For e.g nginx.conf fastcgi_param FN_HANDLER getProfile");
     }
-    // write_out("Content-Type: text/plain\r\n\r\n");
+    // csif_write_out("Content-Type: text/plain\r\n\r\n");
     // if ((value = get_param("REQUEST_METHOD")) != NULL) {
-    //     write_out("%s\n", value);
+    //     csif_write_out("%s\n", value);
     // }
     // if ((value = get_param("REQUEST_URI")) != NULL) {
-    //     write_out("%s \n", value);
+    //     csif_write_out("%s \n", value);
     // }
     // if ((value = get_param("QUERY_STRING")) != NULL) {
-    //     write_out("?%s \n", value);
+    //     csif_write_out("?%s \n", value);
     // }
     // if ((value = get_param("SERVER_PROTOCOL")) != NULL) {
-    //     write_out(" %s \n", value);
+    //     csif_write_out(" %s \n", value);
     // }
-    // write_out("Done\n");
+    // csif_write_out("Done\n");
     // fhash_lock(thread_table);
     csif_t *f = csif_LF_pop(&thread_table, pthread_self());
     if (f) { //free the _csif_
@@ -278,7 +278,7 @@ int file_existed(const char* fname) {
 
 //         memset(buf, 0, len + 1);
 //         while (FCGX_GetStr(buf, len, request->in) > 0); /*{
-//         write_out("%s ", buf);
+//         csif_write_out("%s ", buf);
 //     }*/
 //         while (FCGX_GetChar(request->in) != -1);
 
@@ -314,7 +314,7 @@ void* csif_getParam(const char *key, char* query_str) {
 }
 
 long csif_readContent(FCGX_Request *request, char** content) {
-    char* clenstr = get_param("CONTENT_LENGTH");
+    char* clenstr = csif_get_param("CONTENT_LENGTH");
     FCGX_Stream *in = request->in;
     long len;
 
@@ -665,30 +665,30 @@ void csif_write_http_status(FCGX_Request * request, uint16_t code) {
 
     switch (code) {
     case 200:
-        write_out("Status: 200 OK\r\n");
+        csif_write_out("Status: 200 OK\r\n");
         break;
     case 204:
-        write_out("Status: 204 No Content\r\n");
+        csif_write_out("Status: 204 No Content\r\n");
         break;
 
     case 500:
-        write_out("Status: 500 Internal Server Error\r\n");
+        csif_write_out("Status: 500 Internal Server Error\r\n");
         break;
 
     default:
-        write_out("Status: 200 OK\r\n");
+        csif_write_out("Status: 200 OK\r\n");
         break;
     }
 }
 
 void csif_write_default_header(FCGX_Request * request) {
-    write_out("Content-Type: application/x-www-form-urlencoded\r\n\r\n");
+    csif_write_out("Content-Type: application/x-www-form-urlencoded\r\n\r\n");
 }
 
 void csif_write_jsonp_header(FCGX_Request * request) {
-    write_out("Content-Type: application/javascript\r\n\r\n");
+    csif_write_out("Content-Type: application/javascript\r\n\r\n");
 }
 
 void csif_write_json_header(FCGX_Request * request) {
-    write_out("Content-Type: application/json\r\n\r\n");
+    csif_write_out("Content-Type: application/json\r\n\r\n");
 }

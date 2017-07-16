@@ -69,8 +69,8 @@ int file_existed(const char* fname);
 int setup_logger(char* out_file_path);
 char* print_time(void);
 
-#define write_out(...) FCGX_FPrintF(request->out, __VA_ARGS__)
-#define get_param(KEY) FCGX_GetParam(KEY, request->envp)
+#define csif_write_out(...) FCGX_FPrintF(request->out, __VA_ARGS__)
+#define csif_get_param(KEY) FCGX_GetParam(KEY, request->envp)
 
 // #define get_json(csif_t) csif_t->json
 #define csif_alloc(csif_t, sz) falloc(&csif_t->pool, sz)
