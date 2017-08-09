@@ -20,7 +20,7 @@ void csif_map_alloc_fn(CSIF_MAP_MALLOC_FN malloc_fun, CSIF_MAP_FREE_FN free_fun)
 
 csif_map* csif_map_init(size_t length,  size_t object_size) {
 	unsigned char ** s = csif_map_malloc_fn((length + 1) * sizeof(unsigned char*));
-    *(s+length) = NULL; // Make the footstop
+    memset(s, 0x00, (length + 1) * sizeof(unsigned char*)); // Make the footstop
 	csif_map *_map = csif_map_malloc_fn(sizeof(csif_map));
 	_map->bucket = s;
 	_map->used = 0;
