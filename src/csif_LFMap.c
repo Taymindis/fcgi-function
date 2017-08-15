@@ -14,7 +14,7 @@ void* csif_LF_map_alloc_(csif_LFMap *lf_map);
 int csif_LF_map_free_(csif_LFMap *lf_map, struct csif_LFVal_s *n);
 
 // Derived from https://gist.githubusercontent.com/mgronhol/018e17c118ccf2144744/raw/4f48a076f7628796b3311b80c524d244f02423eb/fast-str.c
-int fast_compare( const char *ptr0, const char *ptr1, int len );
+int fast_compare( const char *ptr0, const char *ptr1, size_t len );
 
 
 static CSIF_LFMAP_MALLOC_FN csif_lf_map_malloc_fn = malloc;
@@ -147,7 +147,7 @@ void csif_LF_map_destroy(csif_LFMap *lf_map) {
 }
 
 // Derived from https://gist.githubusercontent.com/mgronhol/018e17c118ccf2144744/raw/4f48a076f7628796b3311b80c524d244f02423eb/fast-str.c
-int fast_compare( const char *ptr0, const char *ptr1, int len ) {
+int fast_compare( const char *ptr0, const char *ptr1, size_t len ) {
 	int fast = len / sizeof(size_t) + 1;
 	int offset = (fast - 1) * sizeof(size_t);
 	int current_block = 0;
