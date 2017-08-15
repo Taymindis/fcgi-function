@@ -93,8 +93,8 @@ add_custom_target(uninstall
 SET (INCLUDES include)
 SET (SRCDIR src)
 
-SET (SRCS ${SRCDIR}/csif.c ${SRCDIR}/csif_pool.c ${SRCDIR}/csif_json.c ${SRCDIR}/csif_hash.c ${SRCDIR}/csif_LFHashTable.c ${SRCDIR}/csif_map.c ${SRCDIR}/csif_buf.c ${SRCDIR}/csif_cli.c)
-SET (HDRS ${INCLUDES}/csif.h ${INCLUDES}/csif_pool.h ${INCLUDES}/csif_json.h ${INCLUDES}/csif_hash.h ${INCLUDES}/csif_LFHashTable.h ${INCLUDES}/csif_map.h ${INCLUDES}/csif_buf.h)
+SET (SRCS ${SRCDIR}/csif.c ${SRCDIR}/csif_pool.c ${SRCDIR}/csif_json.c ${SRCDIR}/csif_hash.c ${SRCDIR}/csif_LFHashTable.c ${SRCDIR}/csif_LFMap.c ${SRCDIR}/csif_map.c ${SRCDIR}/csif_buf.c ${SRCDIR}/csif_cli.c)
+SET (HDRS ${INCLUDES}/csif.h ${INCLUDES}/csif_pool.h ${INCLUDES}/csif_json.h ${INCLUDES}/csif_hash.h ${INCLUDES}/csif_LFHashTable.h ${INCLUDES}/csif_LFMap.h ${INCLUDES}/csif_map.h ${INCLUDES}/csif_buf.h)
 
 add_library(${PROJ_CSIF}.static STATIC ${HDRS} ${SRCS})
 set_target_properties(${PROJ_CSIF}.static PROPERTIES OUTPUT_NAME ${PROJ_CSIF})
@@ -140,6 +140,7 @@ install(FILES ${INCLUDES}/csif.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${INCLUDES}/csif_json.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${INCLUDES}/csif_hash.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${INCLUDES}/csif_LFHashTable.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(FILES ${INCLUDES}/csif_LFMap.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${INCLUDES}/csif_map.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${INCLUDES}/csif_buf.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${INCLUDES}/csif_pool.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})

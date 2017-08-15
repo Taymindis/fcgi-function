@@ -29,6 +29,7 @@ extern "C" {
 #include "csif_map.h"
 #include "csif_buf.h"
 #include "csif_LFHashTable.h"
+#include "csif_LFMap.h"
 
 #define FLOGGER_ stderr
 
