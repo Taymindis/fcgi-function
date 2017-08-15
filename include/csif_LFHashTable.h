@@ -14,12 +14,12 @@ extern "C" {
 typedef unsigned long int LFKey;
 // typedef char* LFCKey;
 
-typedef struct csif_LFNode_s {
+struct csif_LFNode_s {
     void *val;
     LFKey key;
     atomic_flag used;
     struct csif_LFNode_s *next;    
-} fdy_LFNode;
+};
 
 typedef struct {
     struct csif_LFNode_s *node_buf;

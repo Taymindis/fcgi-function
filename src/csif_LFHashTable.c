@@ -65,7 +65,7 @@ int csif_LF_init(csif_LFHashTable *lf_hashtable, size_t max_size) {
 	// Atomic Init
 	lf_hashtable->size = ATOMIC_VAR_INIT(0);
 
-	return 0;
+	return 1;
 }
 
 int csif_LF_put(csif_LFHashTable *lf_hashtable, LFKey key, void *value) {
