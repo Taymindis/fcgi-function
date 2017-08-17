@@ -117,6 +117,7 @@ void *csif_LF_map_pop(csif_LFMap *lf_map, LFMKey key_) {
 	do {
 		if (buffer->key && fast_compare(key_, buffer->key, keyLen) == 0) goto SUCCESS;
 	} while ((buffer = buffer->next) != NULL);
+	return return_;
 SUCCESS:
 	return_ = buffer->val;
 	if (csif_LF_map_free_(lf_map, buffer)) {

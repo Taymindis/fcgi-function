@@ -95,6 +95,7 @@ void *csif_LF_pop(csif_LFHashTable *lf_hashtable, LFKey key) {
 	do {
 		if (((LFKey)buffer->key) == ((LFKey)key)) goto SUCCESS;
 	} while ((buffer = buffer->next) != NULL);
+	return return_;
 	// printf("%s by key %lu\n", "return null", key);
 SUCCESS:
 	return_ = buffer->val;
