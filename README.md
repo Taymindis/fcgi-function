@@ -6,8 +6,6 @@ Nginx -- https://www.nginx.com/
 
 fcgi library -- https://github.com/FastCGI-Archives/FastCGI.com
 
-cJSON libraries -- https://github.com/DaveGamble/cJSON
-
 cmake and make
 
 ### Supported OS: LINUX, MAC OSX
@@ -52,10 +50,10 @@ Install the project...
 
 ### 4. build a simple program by execute 
 
-> gcc ../services_sample/profile_service.c -lcsif -lcjson -lfcgi -rdynamic -o simple_service
+> gcc ../services_sample/profile_service.c -lcsif -lfcgi -rdynamic -o simple_service
 
 #### For C++
-> g++ -std=c++11 ../services_sample/cpp_profile_service.cpp -lcsif -lcjson -lfcgi -rdynamic -o simple_service
+> g++ -std=c++11 ../services_sample/cpp_profile_service.cpp -lcsif -lfcgi -rdynamic -o simple_service
 
 ### 5. when you type 
 

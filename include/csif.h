@@ -22,8 +22,6 @@ extern "C" {
 #include <setjmp.h>
 #include <sys/time.h>
 
-// Build in cJSON plugin
-#include "csif_json.h"
 #include "csif_pool.h"
 #include "csif_hash.h"
 #include "csif_map.h"
@@ -49,7 +47,6 @@ typedef struct {
 	// unsigned long int _identifier;
 
 	// union {
-	// cJSON *json;
 	char *query_str;
 	// };
 	// char *handler;

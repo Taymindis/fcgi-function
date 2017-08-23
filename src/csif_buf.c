@@ -99,7 +99,7 @@ csif_buf* csif_buf_read_file(char* file_path) {
 	csif_buf *buff_ = csif_buf_create();
 
 	FILE *f; long len; unsigned char *data;
-	// cJSON *json_ptr;
+
 	f = fopen(file_path, "rb");
 	fseek(f, 0, SEEK_END);
 	len = ftell(f);

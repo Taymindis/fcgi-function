@@ -160,13 +160,7 @@ char* print_time(void) {
 
 
 sigset_t* handle_request(FCGX_Request *request) {
-    sigset_t *status_mask = NULL;
-    // cJSON_Hooks *hooks = malloc(sizeof(cJSON_Hooks));
-    // hooks->malloc_fn = Malloc_Function;
-    // hooks->free_fn = Free_Function;
-    // fdebug("this pthread id is %lu\n", pthread_self());
-    // //for cjson
-    // cJSON_InitHooks(hooks);
+    sigset_t *status_mask = NULL;    
 
     // flog_info("dummy value = %d\n", dummy++) ;
     // usleep(1000 * 1000 * 5); // 5 secs sleep

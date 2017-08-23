@@ -56,21 +56,21 @@ int postProfile(FCGX_Request *request, csif_t * csif) {
 	// csif_write_out("Content-Length: %d\r\n\r\n", sz);
 	// csif_write_out("%s", "Data is ");
 	// csif_write_out("%s\n", payload);
-	cJSON* thisObj = parse_json(payload);
-	if (sz && thisObj) {
-		cJSON *ret = (cJSON*)cjson_get_value(thisObj, "userId");
-		if (ret)
-			csif_write_out("%s\n", ret->valuestring);
-		ret = (cJSON*)cjson_get_value(thisObj, "timestamp");
-		if (ret)
-			csif_write_out("%s\n", ret->valuestring);
-		ret = (cJSON*)cjson_get_value(thisObj, "user_req");
-		if (ret)
-			csif_write_out("%s\n", ret->valuestring);
+	// cJSON* thisObj = parse_json(payload);
+	// if (sz && thisObj) {
+	// 	cJSON *ret = (cJSON*)cjson_get_value(thisObj, "userId");
+	// 	if (ret)
+	// 		csif_write_out("%s\n", ret->valuestring);
+	// 	ret = (cJSON*)cjson_get_value(thisObj, "timestamp");
+	// 	if (ret)
+	// 		csif_write_out("%s\n", ret->valuestring);
+	// 	ret = (cJSON*)cjson_get_value(thisObj, "user_req");
+	// 	if (ret)
+	// 		csif_write_out("%s\n", ret->valuestring);
 
-		// csif_write_out("%s\n", cJSON_PrintUnformatted(thisObj));
-		cJSON_Delete(thisObj);
-	}
+	// 	// csif_write_out("%s\n", cJSON_PrintUnformatted(thisObj));
+	// 	cJSON_Delete(thisObj);
+	// }
 
 	flog_info("%s\n", payload);
 

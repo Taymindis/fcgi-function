@@ -58,22 +58,13 @@ else(THREAD_LIB)
 	message( FATAL_ERROR "pthread not found. Please install pthread")
 endif(THREAD_LIB)
 
-# find_library(CJSON_LIB NAMES libcjson.a PATHS ${LIBPATH})
-find_library(CJSON_LIB NAMES cjson PATHS ${LIBPATH})
-if(CJSON_LIB)
-	message(STATUS "cjson found. JSON support is compiled in.")
-	add_definitions(-DCJSON=true)
-else(CJSON_LIB)
-	message( FATAL_ERROR "cjson not found, json is not supporting, please install cjson")
-endif(CJSON_LIB)
-
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wstrict-prototypes -Wmissing-prototypes")
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wmissing-declarations -Wshadow -Wpointer-arith -Wcast-qual")
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wsign-compare -Iinclude -std=c11 -pedantic")
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
 # Not need to export dynamic symbol out, -rdyanmic only for user application
 # SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "-rdynamic") # LDFLAGS=
-#  gcc -fPIC -pie -o libcsif.so src/csif.c src/csif_pool.c src/csif_json.c src/csif_cli.c -Iinclude -Wl,-E -Wl,--whole-archive -lfcgi -ldl -lcjson -Wl,--no-whole-archive
+#  gcc -fPIC -pie -o libcsif.so src/csif.c src/csif_pool.c src/csif_json.c src/csif_cli.c -Iinclude -Wl,-E -Wl,--whole-archive -lfcgi -ldl -Wl,--no-whole-archive
 
 if(UNIX AND NOT APPLE)
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pie -Wl,-E")
@@ -95,8 +86,8 @@ SET (SRCDIR src)
 
 SET (ATOMIC_HASH_DIR atomic_hashtable)
 
-SET (SRCS ${SRCDIR}/csif.c ${SRCDIR}/csif_pool.c ${SRCDIR}/csif_json.c ${SRCDIR}/csif_hash.c ${SRCDIR}/csif_map.c ${ATOMIC_HASH_DIR}/atomic_hashtable_n.c ${SRCDIR}/csif_buf.c ${SRCDIR}/csif_cli.c)
-SET (HDRS ${INCLUDES}/csif.h ${INCLUDES}/csif_pool.h ${INCLUDES}/csif_json.h ${INCLUDES}/csif_hash.h ${INCLUDES}/csif_map.h ${ATOMIC_HASH_DIR}/atomic_hashtable_n.h ${INCLUDES}/csif_buf.h)
+SET (SRCS ${SRCDIR}/csif.c ${SRCDIR}/csif_pool.c ${SRCDIR}/csif_hash.c ${SRCDIR}/csif_map.c ${ATOMIC_HASH_DIR}/atomic_hashtable_n.c ${SRCDIR}/csif_buf.c ${SRCDIR}/csif_cli.c)
+SET (HDRS ${INCLUDES}/csif.h ${INCLUDES}/csif_pool.h ${INCLUDES}/csif_hash.h ${INCLUDES}/csif_map.h ${ATOMIC_HASH_DIR}/atomic_hashtable_n.h ${INCLUDES}/csif_buf.h)
 
 add_library(${PROJ_CSIF}.static STATIC ${HDRS} ${SRCS})
 set_target_properties(${PROJ_CSIF}.static PROPERTIES OUTPUT_NAME ${PROJ_CSIF})
@@ -120,13 +111,8 @@ else(UNIX AND NOT APPLE)
 target_link_libraries(${PROJ_CSIF} fcgi dl pthread)  #dynamic link to -ldl
 # target_link_libraries(${PROJ_CSIF}.static ${LIB_DL}) #static link 
 target_link_libraries(${PROJ_CSIF}.static fcgi dl pthread) #dynamic link to -ldl
-endif(UNIX AND NOT APPLE)	
+endif(UNIX AND NOT APPLE)
 
-if(CJSON_LIB)
-# target_link_libraries(csif cjson)
-target_link_libraries(${PROJ_CSIF} cjson)
-target_link_libraries(${PROJ_CSIF}.static cjson)
-endif(CJSON_LIB)
 
 install(TARGETS ${PROJ_CSIF} EXPORT ${PROJ_CSIF}
 		ARCHIVE DESTINATION lib${LIB_SUFFIX}
@@ -139,9 +125,7 @@ install(TARGETS ${PROJ_CSIF}.static EXPORT ${PROJ_CSIF}
 		# RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 		)
 install(FILES ${INCLUDES}/csif.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install(FILES ${INCLUDES}/csif_json.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${INCLUDES}/csif_hash.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-# install(FILES ${INCLUDES}/csif_LFMap.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${INCLUDES}/csif_map.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${INCLUDES}/csif_buf.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${INCLUDES}/csif_pool.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})

@@ -101,7 +101,6 @@ char** prepare_so(int argc, char *argv[]) {
   // *args++ = "/usr/local/lib";
   // *args++ = "-lfcgi";
   // *args++ = "-ldl";
-  // *args++ = "-lcJSON";
   // *args++ = "-lcsif";
   *(args + argc) = NULL;
   return exec_;
