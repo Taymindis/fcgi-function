@@ -86,8 +86,8 @@ SET (SRCDIR src)
 
 SET (ATOMIC_HASH_DIR atomic_hashtable)
 
-SET (SRCS ${SRCDIR}/csif.c ${SRCDIR}/csif_pool.c ${SRCDIR}/csif_hash.c ${SRCDIR}/csif_map.c ${ATOMIC_HASH_DIR}/atomic_hashtable_n.c ${SRCDIR}/csif_buf.c ${SRCDIR}/csif_cli.c)
-SET (HDRS ${INCLUDES}/csif.h ${INCLUDES}/csif_pool.h ${INCLUDES}/csif_hash.h ${INCLUDES}/csif_map.h ${ATOMIC_HASH_DIR}/atomic_hashtable_n.h ${INCLUDES}/csif_buf.h)
+SET (SRCS ${SRCDIR}/csif.c ${SRCDIR}/csif_pool.c ${SRCDIR}/csif_hash.c ${SRCDIR}/csif_map.c ${ATOMIC_HASH_DIR}/atomic_hashtable.c ${ATOMIC_HASH_DIR}/atomic_hashtable_n.c ${SRCDIR}/csif_buf.c ${SRCDIR}/csif_cli.c)
+SET (HDRS ${INCLUDES}/csif.h ${INCLUDES}/csif_pool.h ${INCLUDES}/csif_hash.h ${INCLUDES}/csif_map.h ${ATOMIC_HASH_DIR}/atomic_hashtable.h ${ATOMIC_HASH_DIR}/atomic_hashtable_n.h ${INCLUDES}/csif_buf.h)
 
 add_library(${PROJ_CSIF}.static STATIC ${HDRS} ${SRCS})
 set_target_properties(${PROJ_CSIF}.static PROPERTIES OUTPUT_NAME ${PROJ_CSIF})
@@ -129,6 +129,7 @@ install(FILES ${INCLUDES}/csif_hash.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${INCLUDES}/csif_map.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${INCLUDES}/csif_buf.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${INCLUDES}/csif_pool.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(FILES ${ATOMIC_HASH_DIR}/atomic_hashtable.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${ATOMIC_HASH_DIR}/atomic_hashtable_n.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 # install(TARGETS csif EXPORT csif DESTINATION ${CMAKE_INSTALL_BINDIR})

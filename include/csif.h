@@ -28,6 +28,7 @@ extern "C" {
 #include "csif_buf.h"
 
 
+#include "atomic_hashtable.h"	
 #include "atomic_hashtable_n.h"	
 
 #define FLOGGER_ stderr
