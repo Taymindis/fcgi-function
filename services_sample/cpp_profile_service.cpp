@@ -4,7 +4,6 @@
 #include <vector>
 
 
-// ** it is only compatible till c++03 due to atomic compatibility
 
 class MyType
 {
@@ -13,7 +12,7 @@ public:
 		flog_info("%s\n", "ASD");
 	}
 	~MyType(){
-
+		flog_info("%s\n", "Value been freed");
 	}
 };
 
