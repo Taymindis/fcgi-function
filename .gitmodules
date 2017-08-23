@@ -1,0 +1,3 @@
+[submodule "atomic_hashtable"]
+	path = atomic_hashtable
+	url = https://github.com/Taymindis/atomic_hashtable.git

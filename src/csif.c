@@ -35,7 +35,8 @@ static const long MAX_STDIN = 10240;
 int no_debug(FILE *__restrict __stream, const char *__restrict __format, ...) {return 1;}
 
 char *appname; //global apps deployment
-static csif_LFHashTable thread_table;
+// static csif_LFHashTable thread_table;
+static __atomic_hash_n *thread_hash;
 static int total_workers, remain_workers;
 void csif_init(char** csif_nmap_func);
 
@@ -58,6 +59,19 @@ void Free_Function(void* v) {
     // printf("%s\n", "FREE-------------- ");
     free(v);
 }
+
+static void* read_t(void *origin) {
+    csif_t *__csif__ = malloc(sizeof(csif_t));
+
+    memcpy(__csif__, origin, sizeof(csif_t));
+    return __csif__;
+}
+
+
+static void free_t(void* node) {
+    free(node);
+}
+
 
 void csif_init(char** csif_nmap_func) {
     csif_hash_set_alloc_fn(Malloc_Function, Free_Function);
@@ -101,13 +115,14 @@ void csif_init(char** csif_nmap_func) {
 /**To prevent -std=99 issue**/
 char *duplistr(const char *str) {
     int n = strlen(str) + 1;
-    csif_t * csif = csif_get_t();
+    csif_t * csif = csif_read_t();
     char *dup = falloc(&csif->pool, n);
     memset(dup, 0, n);
     if (dup)
         memcpy(dup, str, n - 1);
     // dup[n - 1] = '\0';
     // please do not put flog_info here, it will recurve
+    free(csif);
     return dup;
 }
 
@@ -167,7 +182,8 @@ sigset_t* handle_request(FCGX_Request *request) {
 
     csif_t *_csif_ = malloc(sizeof(csif_t));
 
-    csif_LF_put(&thread_table, pthread_self(), _csif_);
+    // csif_LF_put(&thread_table, pthread_self(), _csif_);
+    __atomic_hash_n_put(thread_hash, pthread_self(), _csif_);
 
     // fhash_unlock(thread_table);
     _csif_->pool = p;
@@ -192,7 +208,10 @@ sigset_t* handle_request(FCGX_Request *request) {
                 flog_err("%s\n", "Critical Error Found!!!!!!!!!!!!!!!!!!!!");
                 // once catch , all signal are gone, you have to init again.
                 // init_all_error_signal(); // init back again
-                status_mask = ((csif_t *)csif_LF_get(&thread_table, pthread_self()))->curr_mask;
+                csif_t* csif = (csif_t *)__atomic_hash_n_read(thread_hash, pthread_self());
+                status_mask = csif->curr_mask;
+                free(csif);
+
                 // remain_workers--;
                 goto SKIP_METHOD;
             }
@@ -230,7 +249,7 @@ SKIP_METHOD:
     // }
     // csif_write_out("Done\n");
     // fhash_lock(thread_table);
-    csif_t *f = csif_LF_pop(&thread_table, pthread_self());
+    csif_t *f = __atomic_hash_n_pop(thread_hash, pthread_self());
     if (f) { //free the _csif_
         destroy_pool(f->pool);
         free(f);
@@ -301,9 +320,10 @@ void* csif_getParam(const char *key, char* query_str) {
                 size_t sz = 0;
                 while (*qs && *qs++ != '&')sz++;
 
-                csif_t * csif = csif_get_t();
+                csif_t * csif = csif_read_t();
                 ret = falloc(&csif->pool, sz + 1);
                 memset(ret, 0, sz + 1);
+                free(csif);
                 return memcpy(ret, src, sz);
             }
             qs = (char*)((uintptr_t)qs + len + 1);
@@ -327,10 +347,11 @@ long csif_readContent(FCGX_Request *request, char** content) {
         /* Don't read more than the predefined limit  */
         if (len > MAX_STDIN) { len = MAX_STDIN; }
 
-        csif_t * csif = csif_get_t();
+        csif_t * csif = csif_read_t();
         *content = falloc(&csif->pool, len + 1);
         memset(*content, 0, len + 1);
         len = FCGX_GetStr(*content, len, in);
+        free(csif);
     }
 
     /* Don't read if CONTENT_LENGTH is missing or if it can't be parsed */
@@ -345,8 +366,8 @@ long csif_readContent(FCGX_Request *request, char** content) {
     return len;
 }
 
-csif_t *csif_get_t(void) {
-    return (csif_t *)csif_LF_get(&thread_table, pthread_self());
+csif_t *csif_read_t(void) {
+    return (csif_t *)__atomic_hash_n_read(thread_hash, pthread_self());
 }
 
 int init_socket(char* sock_port, int backlog, int workers, int forkable, int signalable, int debugmode, char* logfile, char* solib, char** csif_nmap_func) {
@@ -424,7 +445,10 @@ int hook_socket(char* sock_port, int backlog, int workers, char** csif_nmap_func
     }
 
     printf("%d workers in process", workers);
-    csif_LF_init(&thread_table, workers + 10); // give some space
+    // csif_LF_init(&thread_table, workers + 10); // give some space
+    thread_hash = __atomic_hash_n_init(workers + 10, read_t, free_t);
+
+
     if (workers == 1) {
         FCGX_Request request;
         FCGX_InitRequest(&request, sock, 0);
@@ -596,7 +620,7 @@ void error_handler(int signo)
     //     flog_err("%s\n", "err sigaction(?) failed");
     // }
 
-    csif_t *_csif_ = csif_get_t();
+    csif_t *_csif_ = csif_read_t();
     _csif_->curr_mask = &sa.sa_mask;
 
     int fd = fileno(FLOGGER_);
@@ -621,6 +645,7 @@ void error_handler(int signo)
 
 
     /*sig*/longjmp(_csif_->jump_err_buff, 999);
+    free(_csif_);
 }
 
 // int init_error_signal(f_singal_t *ferr_signals) {

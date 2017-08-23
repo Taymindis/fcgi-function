@@ -32,7 +32,7 @@ message(STATUS "Current Binary DIRECTORY located at ${CMAKE_CURRENT_BINARY_DIR}"
 
 SET(LIBPATH /usr/lib /usr/local/lib)
 
-include_directories(include /usr/local/include)
+include_directories(atomic_hashtable include /usr/local/include)
 
 add_definitions(-D_XOPEN_SOURCE)
 
@@ -93,8 +93,10 @@ add_custom_target(uninstall
 SET (INCLUDES include)
 SET (SRCDIR src)
 
-SET (SRCS ${SRCDIR}/csif.c ${SRCDIR}/csif_pool.c ${SRCDIR}/csif_json.c ${SRCDIR}/csif_hash.c ${SRCDIR}/csif_LFHashTable.c ${SRCDIR}/csif_LFMap.c ${SRCDIR}/csif_map.c ${SRCDIR}/csif_buf.c ${SRCDIR}/csif_cli.c)
-SET (HDRS ${INCLUDES}/csif.h ${INCLUDES}/csif_pool.h ${INCLUDES}/csif_json.h ${INCLUDES}/csif_hash.h ${INCLUDES}/csif_LFHashTable.h ${INCLUDES}/csif_LFMap.h ${INCLUDES}/csif_map.h ${INCLUDES}/csif_buf.h)
+SET (ATOMIC_HASH_DIR atomic_hashtable)
+
+SET (SRCS ${SRCDIR}/csif.c ${SRCDIR}/csif_pool.c ${SRCDIR}/csif_json.c ${SRCDIR}/csif_hash.c ${SRCDIR}/csif_map.c ${ATOMIC_HASH_DIR}/atomic_hashtable_n.c ${SRCDIR}/csif_buf.c ${SRCDIR}/csif_cli.c)
+SET (HDRS ${INCLUDES}/csif.h ${INCLUDES}/csif_pool.h ${INCLUDES}/csif_json.h ${INCLUDES}/csif_hash.h ${INCLUDES}/csif_map.h ${ATOMIC_HASH_DIR}/atomic_hashtable_n.h ${INCLUDES}/csif_buf.h)
 
 add_library(${PROJ_CSIF}.static STATIC ${HDRS} ${SRCS})
 set_target_properties(${PROJ_CSIF}.static PROPERTIES OUTPUT_NAME ${PROJ_CSIF})
@@ -139,11 +141,12 @@ install(TARGETS ${PROJ_CSIF}.static EXPORT ${PROJ_CSIF}
 install(FILES ${INCLUDES}/csif.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${INCLUDES}/csif_json.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${INCLUDES}/csif_hash.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install(FILES ${INCLUDES}/csif_LFHashTable.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install(FILES ${INCLUDES}/csif_LFMap.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+# install(FILES ${INCLUDES}/csif_LFMap.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${INCLUDES}/csif_map.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${INCLUDES}/csif_buf.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${INCLUDES}/csif_pool.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(FILES ${ATOMIC_HASH_DIR}/atomic_hashtable_n.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
 # install(TARGETS csif EXPORT csif DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(CODE "execute_process(COMMAND ldconfig)")
 

@@ -7,20 +7,21 @@ int getProfile(FCGX_Request *request, csif_t * csif) {
 	csif_write_out("Content-Type: text/plain\r\n\r\n");/* \r\n\r\n  means go to response message*/
 	csif_write_out("%s\n", "you are here");
 
-	csif_t *sameFeedy= csif_get_t(); 
+	csif_t *session= csif_read_t(); 
 
-	// printf("%s\n", sameFeedy->json);
+	// printf("%s\n", session->json);
 	// cJSON * ret;
 	/* Generate a seg fault, for testing purpose */
 	// static int ss = 0;	
 	// if (ss++ < 8) *(int *)NULL = 0;
 
-	if (sameFeedy->query_str) {
-		char *out = csif_getParam("userId", sameFeedy->query_str);
+	if (session->query_str) {
+		char *out = csif_getParam("userId", session->query_str);
 		if (out)
 			csif_write_out("output= %s\n", out); //cjson undefined because only use it's own file
 	}
 
+	free(session);
 
 	return 1;
 }

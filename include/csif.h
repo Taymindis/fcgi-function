@@ -28,8 +28,9 @@ extern "C" {
 #include "csif_hash.h"
 #include "csif_map.h"
 #include "csif_buf.h"
-#include "csif_LFHashTable.h"
-#include "csif_LFMap.h"
+
+
+#include "atomic_hashtable_n.h"	
 
 #define FLOGGER_ stderr
 
@@ -86,7 +87,7 @@ int csif_isspace(const char* s);
 char *duplistr(const char *str);
 int is_empty(char *s);
 
-csif_t *csif_get_t(void);
+csif_t *csif_read_t(void);
 
 // char *getBodyContent(FCGX_Request *request);
 long csif_readContent(FCGX_Request *request, char** content);
