@@ -85,7 +85,7 @@ int csif_isspace(const char* s);
 char *duplistr(const char *str);
 int is_empty(char *s);
 
-csif_t *csif_read_t(void);
+csif_t *csif_get_session(void);
 
 // char *getBodyContent(FCGX_Request *request);
 long csif_readContent(FCGX_Request *request, char** content);

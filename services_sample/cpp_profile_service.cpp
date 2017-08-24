@@ -29,7 +29,7 @@ int getProfile(FCGX_Request *request, csif_t * csif) {
 	csif_write_out("Content-Type: text/plain\r\n\r\n");/* \r\n\r\n  means go to response message*/
 	csif_write_out("%s\n", "you are here");
 
-	csif_t *session = csif_read_t();
+	csif_t *session = csif_get_session();
 
 	MyType me;
 	std::vector<int> a;
@@ -47,7 +47,6 @@ int getProfile(FCGX_Request *request, csif_t * csif) {
 			csif_write_out("output= %s\n", out); //cjson undefined because only use it's own file
 	}
 
-	free(session);
 	return 1;
 }
 

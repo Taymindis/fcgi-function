@@ -115,14 +115,13 @@ void csif_init(char** csif_nmap_func) {
 /**To prevent -std=99 issue**/
 char *duplistr(const char *str) {
     int n = strlen(str) + 1;
-    csif_t * csif = csif_read_t();
+    csif_t * csif = csif_get_session();
     char *dup = falloc(&csif->pool, n);
     memset(dup, 0, n);
     if (dup)
         memcpy(dup, str, n - 1);
     // dup[n - 1] = '\0';
     // please do not put flog_info here, it will recurve
-    free(csif);
     return dup;
 }
 
@@ -314,10 +313,9 @@ void* csif_getParam(const char *key, char* query_str) {
                 size_t sz = 0;
                 while (*qs && *qs++ != '&')sz++;
 
-                csif_t * csif = csif_read_t();
+                csif_t * csif = csif_get_session();
                 ret = falloc(&csif->pool, sz + 1);
                 memset(ret, 0, sz + 1);
-                free(csif);
                 return memcpy(ret, src, sz);
             }
             qs = (char*)((uintptr_t)qs + len + 1);
@@ -341,11 +339,10 @@ long csif_readContent(FCGX_Request *request, char** content) {
         /* Don't read more than the predefined limit  */
         if (len > MAX_STDIN) { len = MAX_STDIN; }
 
-        csif_t * csif = csif_read_t();
+        csif_t * csif = csif_get_session();
         *content = falloc(&csif->pool, len + 1);
         memset(*content, 0, len + 1);
         len = FCGX_GetStr(*content, len, in);
-        free(csif);
     }
 
     /* Don't read if CONTENT_LENGTH is missing or if it can't be parsed */
@@ -360,8 +357,8 @@ long csif_readContent(FCGX_Request *request, char** content) {
     return len;
 }
 
-csif_t *csif_read_t(void) {
-    return (csif_t *)__atomic_hash_n_read(thread_hash, pthread_self());
+csif_t *csif_get_session(void) {
+    return (csif_t *)__atomic_hash_n_get(thread_hash, pthread_self());
 }
 
 int init_socket(char* sock_port, int backlog, int workers, int forkable, int signalable, int debugmode, char* logfile, char* solib, char** csif_nmap_func) {
@@ -614,7 +611,7 @@ void error_handler(int signo)
     //     flog_err("%s\n", "err sigaction(?) failed");
     // }
 
-    csif_t *_csif_ = csif_read_t();
+    csif_t *_csif_ = csif_get_session();
     _csif_->curr_mask = &sa.sa_mask;
 
     int fd = fileno(FLOGGER_);
@@ -639,7 +636,6 @@ void error_handler(int signo)
 
 
     /*sig*/longjmp(_csif_->jump_err_buff, 999);
-    free(_csif_);
 }
 
 // int init_error_signal(f_singal_t *ferr_signals) {
