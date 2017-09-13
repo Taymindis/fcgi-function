@@ -32,7 +32,7 @@ message(STATUS "Current Binary DIRECTORY located at ${CMAKE_CURRENT_BINARY_DIR}"
 
 SET(LIBPATH /usr/lib /usr/local/lib)
 
-include_directories(atomic_hashtable include /usr/local/include)
+include_directories(binary_array atomic_hashtable include /usr/local/include)
 
 add_definitions(-D_XOPEN_SOURCE)
 
@@ -85,9 +85,10 @@ SET (INCLUDES include)
 SET (SRCDIR src)
 
 SET (ATOMIC_HASH_DIR atomic_hashtable)
+SET (BIN_ARRAY_DIR binary_array)
 
-SET (SRCS ${SRCDIR}/csif.c ${SRCDIR}/csif_pool.c ${SRCDIR}/csif_hash.c ${SRCDIR}/csif_map.c ${ATOMIC_HASH_DIR}/atomic_hashtable.c ${ATOMIC_HASH_DIR}/atomic_hashtable_n.c ${SRCDIR}/csif_buf.c ${SRCDIR}/csif_cli.c)
-SET (HDRS ${INCLUDES}/csif.h ${INCLUDES}/csif_pool.h ${INCLUDES}/csif_hash.h ${INCLUDES}/csif_map.h ${ATOMIC_HASH_DIR}/atomic_hashtable.h ${ATOMIC_HASH_DIR}/atomic_hashtable_n.h ${INCLUDES}/csif_buf.h)
+SET (SRCS ${SRCDIR}/csif.c ${SRCDIR}/csif_pool.c ${SRCDIR}/csif_hash.c ${SRCDIR}/csif_map.c ${BIN_ARRAY_DIR}/binary_array.c ${ATOMIC_HASH_DIR}/atomic_hashtable.c ${ATOMIC_HASH_DIR}/atomic_hashtable_n.c ${SRCDIR}/csif_buf.c ${SRCDIR}/csif_cli.c)
+SET (HDRS ${INCLUDES}/csif.h ${INCLUDES}/csif_pool.h ${INCLUDES}/csif_hash.h ${INCLUDES}/csif_map.h ${BIN_ARRAY_DIR}/binary_array.h ${ATOMIC_HASH_DIR}/atomic_hashtable.h ${ATOMIC_HASH_DIR}/atomic_hashtable_n.h ${INCLUDES}/csif_buf.h)
 
 add_library(${PROJ_CSIF}.static STATIC ${HDRS} ${SRCS})
 set_target_properties(${PROJ_CSIF}.static PROPERTIES OUTPUT_NAME ${PROJ_CSIF})
@@ -129,6 +130,7 @@ install(FILES ${INCLUDES}/csif_hash.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${INCLUDES}/csif_map.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${INCLUDES}/csif_buf.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${INCLUDES}/csif_pool.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(FILES ${BIN_ARRAY_DIR}/binary_array.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${ATOMIC_HASH_DIR}/atomic_hashtable.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${ATOMIC_HASH_DIR}/atomic_hashtable_n.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
