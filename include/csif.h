@@ -90,7 +90,7 @@ csif_t *csif_get_session(void);
 
 // char *getBodyContent(FCGX_Request *request);
 long csif_readContent(FCGX_Request *request, char** content);
-void* csif_getParam(const char *key, const char* query_str);
+void* csif_getParam(const char *key, char* query_str);
 
 
 void csif_write_http_status(FCGX_Request *request, uint16_t code);

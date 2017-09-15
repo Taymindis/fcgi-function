@@ -7,18 +7,24 @@ int getProfile(FCGX_Request *request, csif_t * csif) {
 	csif_write_out("Content-Type: text/plain\r\n\r\n");/* \r\n\r\n  means go to response message*/
 	csif_write_out("%s\n", "you are here");
 
-	csif_t *session= csif_get_session(); 
+	csif_t *session = csif_get_session();
 
 	// printf("%s\n", session->json);
 	// cJSON * ret;
 	/* Generate a seg fault, for testing purpose */
-	// static int ss = 0;	
+	// static int ss = 0;
 	// if (ss++ < 8) *(int *)NULL = 0;
 
 	if (session->query_str) {
 		char *out = csif_getParam("userId", session->query_str);
 		if (out)
 			csif_write_out("output= %s\n", out); //cjson undefined because only use it's own file
+
+		out = csif_getParam("userId2", session->query_str);
+		if (out)
+			csif_write_out("output 2= %s\n", out); //cjson undefined because only use it's own file
+
+
 	}
 
 
@@ -28,7 +34,7 @@ int getProfile(FCGX_Request *request, csif_t * csif) {
 int postError(FCGX_Request *request, csif_t * csif) {
 	flog_info("%s\n", "you reach here with post Error test");
 	csif_write_out("Status: 500 Internal Server Error\r\n");
-	csif_write_out("Content-Type: text/plain\r\n\r\n");	
+	csif_write_out("Content-Type: text/plain\r\n\r\n");
 	csif_write_out("%s\n", "you hitting error");
 
 	return 1;
@@ -78,8 +84,8 @@ int postProfile(FCGX_Request *request, csif_t * csif) {
 }
 
 int main (int argc, char *argv[]) {
-char* csif_nmap_func[] = {"getProfile", "postError","postProfile", NULL};
-csif_main (argc, argv, csif_nmap_func);
+	char* csif_nmap_func[] = {"getProfile", "postError", "postProfile", NULL};
+	csif_main (argc, argv, csif_nmap_func);
 }
 
 

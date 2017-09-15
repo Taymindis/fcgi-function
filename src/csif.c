@@ -308,7 +308,7 @@ int strpos(const char *haystack, const char *needle)
    return -1;   // Not found = -1.
 }
 
-void* csif_getParam(const char *key, const char* query_str) {
+void* csif_getParam(const char *key, char* query_str) {
     int len, pos;
     char *qs = query_str;
     if (key && *key && qs && *qs) {
