@@ -42,6 +42,7 @@ void csif_init(char** csif_nmap_func);
 
 void* Malloc_Function(size_t sz);
 void Free_Function(void* v);
+int strpos(const char *haystack, const char *needle);
 
 void* multi_thread_accept(void* sock_ptr);
 // void *thread_admin(void* sock);
@@ -298,26 +299,35 @@ int file_existed(const char* fname) {
 //     }
 // }
 
-void* csif_getParam(const char *key, char* query_str) {
-    int len;
+
+int strpos(const char *haystack, const char *needle)
+{
+   char *p = strstr(haystack, needle);
+   if (p)
+      return p - haystack;
+   return -1;   // Not found = -1.
+}
+
+void* csif_getParam(const char *key, const char* query_str) {
+    int len, pos;
     char *qs = query_str;
     if (key && *key && qs && *qs) {
         len = strlen(key);
         do {
-            if ((strncmp(key, qs, len) == 0) && (qs[len] == '=')) {
-                char *src = qs = (char*)((uintptr_t)qs + len + 1),
-                      *ret;
-                size_t sz = 0;
-                while (*qs && *qs++ != '&')sz++;
+            if ((pos = strpos(qs, key)) >= 0) {
+                qs = (char*)qs + pos + len;
+                if (*qs++ == '=') {
+                    char *src = qs,
+                          *ret;
+                    size_t sz = 0;
+                    while (*qs && *qs++ != '&')sz++;
 
-                csif_t * csif = csif_get_session();
-                ret = falloc(&csif->pool, sz + 1);
-                memset(ret, 0, sz + 1);
-                return memcpy(ret, src, sz);
-            }
-            qs = (char*)((uintptr_t)qs + len + 1);
-            while (*qs && *qs++ != '&');
-            qs++;
+                    csif_t * csif = csif_get_session();
+                    ret = falloc(&csif->pool, sz + 1);
+                    memset(ret, 0, sz + 1);
+                    return memcpy(ret, src, sz);
+                } else while (*qs && *qs++ != '&');
+            } else return NULL;
         } while (*qs);
     }
     return NULL;
