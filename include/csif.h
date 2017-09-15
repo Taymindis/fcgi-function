@@ -68,7 +68,7 @@ int csif_main (int argc, char *argv[], char* all_func[]);
 int init_socket(char* sock_port, int backlog, int workers, int forkable, int signalable, int debugmode, char* logfile, char* solib, char** csif_nmap_func);
 int file_existed(const char* fname);
 int setup_logger(char* out_file_path);
-char* print_time(void);
+void print_time(char* buff);
 
 #define csif_write_out(...) FCGX_FPrintF(request->out, __VA_ARGS__)
 
@@ -107,17 +107,17 @@ void csif_write_json_header(FCGX_Request *request);
 // #define fdebug(M, ...)
 // #endif
 #ifdef CSIF_MACOSX
-#define fdebug(M, ...) fprintf(FLOGGER_, "MACOSX -- DEBUG - %s - %s:%d: " M "\n", print_time(), __FILE__, __LINE__, ##__VA_ARGS__)
+#define fdebug(M, ...) { char buff__[20]; print_time(buff__); fprintf(FLOGGER_, "MACOSX -- DEBUG - %s - %s:%d: " M "\n", buff__, __FILE__, __LINE__, ##__VA_ARGS__); }
 #else
-#define fdebug(M, ...) (*csif_dbg)(FLOGGER_, "DEBUG - %s - %s:%d: " M "\n", print_time(), __FILE__, __LINE__, ##__VA_ARGS__)
+#define fdebug(M, ...) { char buff__[20]; print_time(buff__); (*csif_dbg)(FLOGGER_, "DEBUG - %s - %s:%d: " M "\n", buff__, __FILE__, __LINE__, ##__VA_ARGS__); }
 #endif
 #define clean_errno() (errno == 0 ? "None" : strerror(errno))
 
-#define flog_err(M, ...) fprintf(FLOGGER_, "[ERROR] (%s - %s:%d: errno: %s) " M "\n", print_time(), __FILE__, __LINE__, clean_errno(),  ##__VA_ARGS__)
+#define flog_err(M, ...) { char buff__[20]; print_time(buff__); fprintf(FLOGGER_, "[ERROR] (%s - %s:%d: errno: %s) " M "\n", buff__, __FILE__, __LINE__, clean_errno(),  ##__VA_ARGS__); }
 
-#define flog_warn(M, ...) fprintf(FLOGGER_, "[WARN] (%s - %s:%d: errno: %s) " M "\n", print_time(), __FILE__, __LINE__, clean_errno(), ##__VA_ARGS__)
+#define flog_warn(M, ...) { char buff__[20]; print_time(buff__);  fprintf(FLOGGER_, "[WARN] (%s - %s:%d: errno: %s) " M "\n", buff__, __FILE__, __LINE__, clean_errno(), ##__VA_ARGS__); }
 
-#define flog_info(M, ...) fprintf(FLOGGER_, "[INFO] (%s - %s:%d) " M "\n", print_time(), __FILE__, __LINE__, ##__VA_ARGS__)
+#define flog_info(M, ...) { char buff__[20]; print_time(buff__);  fprintf(FLOGGER_, "[INFO] (%s - %s:%d) " M "\n", buff__, __FILE__, __LINE__, ##__VA_ARGS__); }
 
 #define check(A, M, ...) if(!(A)) { flog_err(M, ##__VA_ARGS__); errno=0; goto error; }
 

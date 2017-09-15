@@ -150,13 +150,10 @@ int setup_logger(char* out_file_path) {
     return 1;
 }
 
-char* print_time(void) {
-    char buff[20];
+void print_time(char* buff) {
     time_t now = time(NULL);
-    strftime(buff, 20, "%Y-%m-%d %H:%M:%S", localtime(&now));
-    return duplistr(buff);
+    strftime(buff, 20, "%Y-%m-%d %H:%M:%S", localtime(&now));    
 }
-
 
 sigset_t* handle_request(FCGX_Request *request) {
     sigset_t *status_mask = NULL;    
