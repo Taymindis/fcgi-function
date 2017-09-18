@@ -309,28 +309,30 @@ int strpos(const char *haystack, const char *needle)
 }
 
 void* csif_getParam(const char *key, char* query_str) {
-    int len, pos;
-    char *qs = query_str;
-    if (key && *key && qs && *qs) {
-        len = strlen(key);
-        do {
-            if ((pos = strpos(qs, key)) >= 0) {
-                qs = (char*)qs + pos + len;
-                if (*qs++ == '=') {
-                    char *src = qs,
-                          *ret;
-                    size_t sz = 0;
-                    while (*qs && *qs++ != '&')sz++;
+   int len, pos;
+   char *qs = query_str;
+   if (key && *key && qs && *qs) {
+      len = strlen(key);
+      do {
+         if ((pos = strpos(qs, key)) < 0) return NULL;
 
-                    csif_t * csif = csif_get_session();
-                    ret = falloc(&csif->pool, sz + 1);
-                    memset(ret, 0, sz + 1);
-                    return memcpy(ret, src, sz);
-                } else while (*qs && *qs++ != '&');
-            } else return NULL;
-        } while (*qs);
-    }
-    return NULL;
+         if (pos == 0 || qs[pos - 1] == '&') {
+            qs = (char*)qs + pos + len;
+            if (*qs++ == '=') {
+               char *src = qs,
+                     *ret;
+               size_t sz = 0;
+               while (*qs && *qs++ != '&')sz++;
+
+               csif_t * csif = csif_get_session();
+               ret = falloc(&csif->pool, sz + 1);
+               memset(ret, 0, sz + 1);
+               return memcpy(ret, src, sz);
+            } else while (*qs && *qs++ != '&');
+         } else while (*qs && *qs++ != '&');
+      } while (*qs);
+   }
+   return NULL;
 }
 
 long csif_readContent(FCGX_Request *request, char** content) {
