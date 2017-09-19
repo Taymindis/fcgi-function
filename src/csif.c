@@ -590,11 +590,11 @@ void _backtrace(int fd, int signo,  int stack_size) {
     void *buffer[stack_size];
     int size = 0;
 
-    if (buffer != NULL) {
+    // if (buffer != NULL) {
         // goto KillProcess;
         size = backtrace(buffer, stack_size);
         backtrace_symbols_fd(buffer, size, fd);
-    }
+    // }
     // size = backtrace(buffer, stack_size);
     // backtrace_symbols_fd(buffer, size, fd);
 

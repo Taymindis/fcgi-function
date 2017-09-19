@@ -104,9 +104,9 @@ link_directories(/usr/local/lib /usr/lib)
 
 if(UNIX AND NOT APPLE)
 # target_link_libraries(${PROJ_CSIF} ${LIB_DL}) #static link to fcgi
-target_link_libraries(${PROJ_CSIF} fcgi dl pthread atomic)  #dynamic link to -ldl
+target_link_libraries(${PROJ_CSIF} fcgi dl pthread)  #dynamic link to -ldl
 # target_link_libraries(${PROJ_CSIF}.static ${LIB_DL}) #static link 
-target_link_libraries(${PROJ_CSIF}.static fcgi dl pthread atomic) #dynamic link to -ldl
+target_link_libraries(${PROJ_CSIF}.static fcgi dl pthread) #dynamic link to -ldl
 else(UNIX AND NOT APPLE)
 # target_link_libraries(${PROJ_CSIF} ${LIB_DL}) #static link to fcgi
 target_link_libraries(${PROJ_CSIF} fcgi dl pthread)  #dynamic link to -ldl

@@ -31,7 +31,7 @@ size_t blk_size( csif_pool *p ) {
 csif_pool* re_create_pool( csif_pool *curr_p) {
     csif_pool *newp = NULL;
     if (curr_p) {
-        printf("%s\n", "Recreate Pool");
+        // printf("%s\n", "Recreate Pool");
         size_t curr_used_size = blk_size(curr_p);
         size_t newSize = curr_used_size + curr_used_size;
         newp = (csif_pool*)mem_align(sizeof(csif_pool) + newSize);
