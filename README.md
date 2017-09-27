@@ -1,5 +1,5 @@
-# nginx-c-handler
-nginx-c-handler is a C/CPP service interface, It is a Service Interface build on top of FastCGI and Nginx which provided function handler support, it also provided useful collection tools to enhance the facilities. 
+# ngx-c-handler
+ngx-c-handler is a C/CPP service interface, It is a Service Interface build on top of FastCGI and Nginx which provided function handler support, it also provided useful collection tools to enhance the facilities. 
 
 ## Prerequisition Installed
 Nginx -- https://www.nginx.com/
