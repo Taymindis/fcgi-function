@@ -94,7 +94,7 @@ Available options:
 ### 6.1 Running on background by using nohup
 nohup bash -c "./simple_service -p2005 -w400 -q400 -d -e" > /home/datafeedx11/apps.log &
 
-### 6.2 RUnning on background by using nohup and valgrind (performance will impact)
+### 6.2 Running on background by using nohup and valgrind (performance will impact)
 nohup bash -c "valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes ./simple_service -p2005 -w400 -q400 -d -e" > /home/datafeedx11/valgrind_server.log &
 
 ### 7. Edit the nginx.conf in your nginx config folder by append in your server block:-
