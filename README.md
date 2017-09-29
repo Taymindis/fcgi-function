@@ -149,8 +149,8 @@ Available options:
 
 ### 10. shutdown the background instance 
 
-##### kill the process by using `kill -2 <pid>` in order to see the valgrind logs (do not use -9 as it will direct kill the process, unless -2 is not working)
-##### for valgrind log, you will the the summary report after `kill -2 <pid>`
+##### kill the process by using `kill -2 <pid>`, *please do not use -9 as it will direct kill the process, unless -2 is not working
+##### for valgrind log, you will get the summary report after `kill -2 <pid>`
 
 
 ## To uninstall.
