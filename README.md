@@ -96,14 +96,14 @@ Available options:
 > ./simple_service -p2005 -q200 -w200 -d -e
 
 ### 6.1 Running on background by using nohup
-nohup bash -c "./simple_service -p2005 -w100 -q100 -d -e -l/home/user1/apps.log" >/dev/null 2>&1 &
+> nohup bash -c "./simple_service -p2005 -w100 -q100 -d -e -l/home/user1/apps.log" >/dev/null 2>&1 &
 
-./simple_service -p2005 -w100 -q100 -d -e -l/home/user1/apps.log -f
+> ./simple_service -p2005 -w100 -q100 -d -e -l/home/user1/apps.log -f
 
 ### 6.2 Running on valgrind (performance will impact)
-valgrind --leak-check=full --show-leak-kinds=all ./simple_service -p2005 -w200 -q200 -d -e
+> valgrind --leak-check=full --show-leak-kinds=all ./simple_service -p2005 -w200 -q200 -d -e
 
-valgrind --leak-check=full --show-leak-kinds=all ./simple_service -p2005 -w200 -q200 -d -e -l/home/user1/apps.log
+> valgrind --leak-check=full --show-leak-kinds=all ./simple_service -p2005 -w200 -q200 -d -e -l/home/user1/apps.log
 
 ### 7. Edit the nginx.conf in your nginx config folder by append in your server block:-
 
