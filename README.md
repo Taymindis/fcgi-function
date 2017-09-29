@@ -95,7 +95,7 @@ Available options:
 
 > ./simple_service -p2005 -q200 -w200 -d -e
 
-### 6.1 Running on background by using nohup
+### 6.1 Running on background by using nohup or forking option
 > nohup bash -c "./simple_service -p2005 -w100 -q100 -d -e -l/home/user1/apps.log" >/dev/null 2>&1 &
 
 > ./simple_service -p2005 -w100 -q100 -d -e -l/home/user1/apps.log -f
