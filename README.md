@@ -147,6 +147,12 @@ Available options:
 *the payload.txt is inside the root directory*
 
 
+### 10. shutdown the background instance 
+
+##### kill the process by using `kill -2 <pid>` in order to see the valgrind logs (do not use -9 as it will direct kill the process, unless -2 is not working)
+##### for valgrind log, you will the the summary report after `kill -2 <pid>`
+
+
 ## To uninstall.
 ### 1. Go to root_directory/build folder -- make sure build content is still existed.
 ### 2. type "sudo make uninstall" 
