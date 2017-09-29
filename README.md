@@ -95,7 +95,7 @@ Available options:
 
 > ./simple_service -p2005 -q200 -w200 -d -e
 
-### 6.1 Running on background by using nohup or forking option
+### 6.1 Running on background by using nohup(preferable) or forking option
 > nohup bash -c "./simple_service -p2005 -w100 -q100 -d -e -l/home/user1/apps.log" >/dev/null 2>&1 &
 
 > ./simple_service -p2005 -w100 -q100 -d -e -l/home/user1/apps.log -f
@@ -104,6 +104,9 @@ Available options:
 > valgrind --leak-check=full --show-leak-kinds=all ./simple_service -p2005 -w200 -q200 -d -e
 
 > valgrind --leak-check=full --show-leak-kinds=all ./simple_service -p2005 -w200 -q200 -d -e -l/home/user1/apps.log
+
+#### 6.2.1 valgrind on background (recommended for UAT purpose)
+> nohup bash -c "valgrind --leak-check=full --log-file=/home/user1/valgrind_check.log ./simple_service -p2005 -w200 -q200 -d -e -l/home/user1/apps.log" >/dev/null 2>&1 &
 
 ### 7. Edit the nginx.conf in your nginx config folder by append in your server block:-
 
