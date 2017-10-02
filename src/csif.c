@@ -23,13 +23,17 @@
 // char* csif_nmap_func[];
 #define _get_param_(KEY) FCGX_GetParam(KEY, request->envp)
 
-csif_map *dyna_funcs = NULL;
+// csif_map *dyna_funcs = NULL;
 
 typedef int (*h)(FCGX_Request *, csif_t*);
 
 struct csif_handler {
+    char* name;
     h handle;
 };
+
+static int func_count = 0;
+struct csif_handler *dyna_funcs = NULL;
 
 static const long MAX_STDIN = 10240;
 int no_debug(FILE *__restrict __stream, const char *__restrict __format, ...) {return 1;}
@@ -38,7 +42,7 @@ char *appname; //global apps deployment
 // static csif_LFHashTable thread_table;
 static __atomic_hash_n *thread_hash;
 static int total_workers, remain_workers;
-void csif_init(char** csif_nmap_func);
+int csif_init(char** csif_nmap_func);
 
 void* Malloc_Function(size_t sz);
 void Free_Function(void* v);
@@ -62,10 +66,10 @@ void Free_Function(void* v) {
 }
 
 static void* read_t(void *origin) {
-    csif_t *__csif__ = malloc(sizeof(csif_t));
+    csif_t *_csession_ = malloc(sizeof(csif_t));
 
-    memcpy(__csif__, origin, sizeof(csif_t));
-    return __csif__;
+    memcpy(_csession_, origin, sizeof(csif_t));
+    return _csession_;
 }
 
 
@@ -74,7 +78,7 @@ static void free_t(void* node) {
 }
 
 
-void csif_init(char** csif_nmap_func) {
+int csif_init(char** csif_nmap_func) {
     csif_hash_set_alloc_fn(Malloc_Function, Free_Function);
     csif_buf_set_alloc_fn(Malloc_Function, Free_Function);
 
@@ -85,27 +89,31 @@ void csif_init(char** csif_nmap_func) {
     if (!usr_req_handle) {
         flog_err("%s\n", dlerror());
         flog_info("%s\n", "Have you included -rdynamic in your compiler option, for e.g gcc ... -rdynamic");
+        return 0;
     }
-
-    int func_count = 0;
 
     while (*(csif_nmap_func + func_count++));
 
     printf("total function = %d\n", --func_count); // Remove NULL
-    dyna_funcs = csif_map_init(func_count, sizeof(struct csif_handler));
+    dyna_funcs = malloc(func_count * sizeof(struct csif_handler));
 
     for (int f = 0; f < func_count; f++) {
         // printf("%d\n", f);
-        struct csif_handler *func = (struct csif_handler *)csif_map_assign(dyna_funcs, csif_nmap_func[f]);
+        // struct csif_handler *func = (struct csif_handler *)csif_map_assign(dyna_funcs, csif_nmap_func[f]);
 
-        *(void **) (&func->handle) = dlsym(usr_req_handle, csif_nmap_func[f]);
+        dyna_funcs[f].name = calloc((strlen(csif_nmap_func[f]) + 1), sizeof(char));
+
+        strcpy(dyna_funcs[f].name, csif_nmap_func[f]);
+
+        *(void **) (&dyna_funcs[f].handle) = dlsym(usr_req_handle, csif_nmap_func[f]);
 
         if ((error = dlerror()) != NULL) {
             flog_err("%s\n", error);
             flog_info("%s\n", "Have you included -rdynamic in your compiler option, for e.g gcc ... -rdynamic");
+            return 0;
         }
     }
-
+    return 1;
     // never close the library
     // if (dlclose(usr_req_handle) != 0) {
     //     flog_err("%s\n", "Unable to load feed module lib:");
@@ -116,8 +124,8 @@ void csif_init(char** csif_nmap_func) {
 /**To prevent -std=99 issue**/
 char *duplistr(const char *str) {
     int n = strlen(str) + 1;
-    csif_t * csif = csif_get_session();
-    char *dup = falloc(&csif->pool, n);
+    csif_t * csession = csif_get_session();
+    char *dup = falloc(&csession->pool, n);
     memset(dup, 0, n);
     if (dup)
         memcpy(dup, str, n - 1);
@@ -153,11 +161,11 @@ int setup_logger(char* out_file_path) {
 
 void print_time(char* buff) {
     time_t now = time(NULL);
-    strftime(buff, 20, "%Y-%m-%d %H:%M:%S", localtime(&now));    
+    strftime(buff, 20, "%Y-%m-%d %H:%M:%S", localtime(&now));
 }
 
 sigset_t* handle_request(FCGX_Request *request) {
-    sigset_t *status_mask = NULL;    
+    sigset_t *status_mask = NULL;
 
     // flog_info("dummy value = %d\n", dummy++) ;
     // usleep(1000 * 1000 * 5); // 5 secs sleep
@@ -171,14 +179,14 @@ sigset_t* handle_request(FCGX_Request *request) {
 
     // fhash_lock(thread_table);
 
-    csif_t *_csif_ = malloc(sizeof(csif_t));
+    csif_t *_csession_ = malloc(sizeof(csif_t)), *_rel_csession_;
 
-    // csif_LF_put(&thread_table, pthread_self(), _csif_);
-    __atomic_hash_n_put(thread_hash, pthread_self(), _csif_);
+    // csif_LF_put(&thread_table, pthread_self(), _csession_);
+    __atomic_hash_n_put(thread_hash, pthread_self(), _csession_);
 
     // fhash_unlock(thread_table);
-    _csif_->pool = p;
-    _csif_->query_str = NULL;
+    _csession_->pool = p;
+    _csession_->query_str = NULL;
 
 
 
@@ -186,65 +194,50 @@ sigset_t* handle_request(FCGX_Request *request) {
     value = (char*)(uintptr_t) * (env) + 11;
 
     if (value != NULL) {
-        struct csif_handler *handler_ = (struct csif_handler*)csif_map_get(dyna_funcs, value);
-        if (handler_) {
-            if (strcmp(_get_param_("REQUEST_METHOD"), "GET") == 0) {
-                char* query_string = duplistr(_get_param_("QUERY_STRING"));
-                if (!is_empty(query_string))
-                    _csif_->query_str = query_string;//parse_json_fr_args(query_string);
+        int i;
+        for (i = 0; i < func_count; i++) {
+            if (strcmp(dyna_funcs[i].name, value) == 0) {       
+                if (strcmp(_get_param_("REQUEST_METHOD"), "GET") == 0) {
+                    char* query_string = duplistr(_get_param_("QUERY_STRING"));
+                    if (!is_empty(query_string))
+                        _csession_->query_str = query_string;//parse_json_fr_args(query_string);
+                }
+
+                // trying to catch back to life from error
+                if (/*sig*/setjmp(_csession_->jump_err_buff) == 999) {
+                    flog_err("%s\n", "Critical Error Found!!!!!!!!!!!!!!!!!!!!");
+                    csif_t* csession = (csif_t *)__atomic_hash_n_read(thread_hash, pthread_self());
+                    status_mask = csession->curr_mask;
+                    free(csession); // This is read, you have to free
+                    goto SKIP_METHOD;
+                }
+                dyna_funcs[i].handle(request, _csession_);
+
+                goto RELEASE_POOL;
             }
-
-            // trying to catch back to life from error
-            if (/*sig*/setjmp(_csif_->jump_err_buff) == 999) {
-                flog_err("%s\n", "Critical Error Found!!!!!!!!!!!!!!!!!!!!");
-                // once catch , all signal are gone, you have to init again.
-                // init_all_error_signal(); // init back again
-                csif_t* csif = (csif_t *)__atomic_hash_n_read(thread_hash, pthread_self());
-                status_mask = csif->curr_mask;
-                free(csif);
-
-                // remain_workers--;
-                goto SKIP_METHOD;
-            }
-            //
-            // flog_info("dummy value = %d\n", 1);
-            // (*fdyHandler->handle)(request, _csif_);
-
-            handler_->handle(request, _csif_);
-        } else {
-            flog_err("%s\n", "Method not found!!!!!!!!!!!!!!!!!!!!");
-SKIP_METHOD:
-            csif_write_http_status(request, 500);
-            csif_write_out("Content-Type: text/plain\r\n\r\n");
-            csif_write_out("%s\n", "Method not found or memory corruption");
-            csif_write_out("%s\n", "check the log whether memory leak or method does not existed in your program");
         }
+
+        flog_err("%s\n", "Method not found!!!!!!!!!!!!!!!!!!!!");
+SKIP_METHOD:
+        csif_write_http_status(request, 500);
+        csif_write_out("Content-Type: text/plain\r\n\r\n");
+        csif_write_out("%s\n", "Method not found or memory corruption");
+        csif_write_out("%s\n", "check the log whether memory leak or method does not existed in your program");
+
     } else {
         csif_write_out("Content-Type: text/plain\r\n\r\n");
         csif_write_out("%s\n", "FN_HANDLER not found");
         csif_write_out("%s\n", "Please provide your FN_HANDLER in your config file");
         csif_write_out("%s\n", "For e.g nginx.conf fastcgi_param FN_HANDLER getProfile");
     }
-    // csif_write_out("Content-Type: text/plain\r\n\r\n");
-    // if ((value = get_param("REQUEST_METHOD")) != NULL) {
-    //     csif_write_out("%s\n", value);
-    // }
-    // if ((value = get_param("REQUEST_URI")) != NULL) {
-    //     csif_write_out("%s \n", value);
-    // }
-    // if ((value = get_param("QUERY_STRING")) != NULL) {
-    //     csif_write_out("?%s \n", value);
-    // }
-    // if ((value = get_param("SERVER_PROTOCOL")) != NULL) {
-    //     csif_write_out(" %s \n", value);
-    // }
-    // csif_write_out("Done\n");
-    // fhash_lock(thread_table);
-    csif_t *f = __atomic_hash_n_pop(thread_hash, pthread_self());
-    if (f) { //free the _csif_
-        destroy_pool(f->pool);
-        free(f);
-        // fprintf(stdout, "%s\n", "successfully free _csif_:");
+
+
+RELEASE_POOL:
+    _rel_csession_ = __atomic_hash_n_pop(thread_hash, pthread_self());
+    if (_rel_csession_) { //free the _csession_
+        destroy_pool(_rel_csession_->pool);
+        free(_rel_csession_);
+        // fprintf(stdout, "%s\n", "successfully free _csession_:");
         // fprintf(stdout, "%s\n", "successfully freed");
         // so far all are freed.
         // fhash_unlock(thread_table);
@@ -302,37 +295,37 @@ int file_existed(const char* fname) {
 
 int strpos(const char *haystack, const char *needle)
 {
-   char *p = strstr(haystack, needle);
-   if (p)
-      return p - haystack;
-   return -1;   // Not found = -1.
+    char *p = strstr(haystack, needle);
+    if (p)
+        return p - haystack;
+    return -1;   // Not found = -1.
 }
 
 void* csif_getParam(const char *key, char* query_str) {
-   int len, pos;
-   char *qs = query_str;
-   if (key && *key && qs && *qs) {
-      len = strlen(key);
-      do {
-         if ((pos = strpos(qs, key)) < 0) return NULL;
+    int len, pos;
+    char *qs = query_str;
+    if (key && *key && qs && *qs) {
+        len = strlen(key);
+        do {
+            if ((pos = strpos(qs, key)) < 0) return NULL;
 
-         if (pos == 0 || qs[pos - 1] == '&') {
-            qs = (char*)qs + pos + len;
-            if (*qs++ == '=') {
-               char *src = qs,
-                     *ret;
-               size_t sz = 0;
-               while (*qs && *qs++ != '&')sz++;
+            if (pos == 0 || qs[pos - 1] == '&') {
+                qs = (char*)qs + pos + len;
+                if (*qs++ == '=') {
+                    char *src = qs,
+                          *ret;
+                    size_t sz = 0;
+                    while (*qs && *qs++ != '&')sz++;
 
-               csif_t * csif = csif_get_session();
-               ret = falloc(&csif->pool, sz + 1);
-               memset(ret, 0, sz + 1);
-               return memcpy(ret, src, sz);
+                    csif_t * csession = csif_get_session();
+                    ret = falloc(&csession->pool, sz + 1);
+                    memset(ret, 0, sz + 1);
+                    return memcpy(ret, src, sz);
+                } else while (*qs && *qs++ != '&');
             } else while (*qs && *qs++ != '&');
-         } else while (*qs && *qs++ != '&');
-      } while (*qs);
-   }
-   return NULL;
+        } while (*qs);
+    }
+    return NULL;
 }
 
 long csif_readContent(FCGX_Request *request, char** content) {
@@ -348,8 +341,8 @@ long csif_readContent(FCGX_Request *request, char** content) {
         /* Don't read more than the predefined limit  */
         if (len > MAX_STDIN) { len = MAX_STDIN; }
 
-        csif_t * csif = csif_get_session();
-        *content = falloc(&csif->pool, len + 1);
+        csif_t * csession = csif_get_session();
+        *content = falloc(&csession->pool, len + 1);
         memset(*content, 0, len + 1);
         len = FCGX_GetStr(*content, len, in);
     }
@@ -424,7 +417,9 @@ int init_socket(char* sock_port, int backlog, int workers, int forkable, int sig
 int hook_socket(char* sock_port, int backlog, int workers, char** csif_nmap_func) {
     int sock = 0;
     FCGX_Init();
-    csif_init(csif_nmap_func);
+    if (!csif_init(csif_nmap_func)) {
+        exit(1);
+    }
 
     remain_workers = 0;
     total_workers = workers;
@@ -591,9 +586,9 @@ void _backtrace(int fd, int signo,  int stack_size) {
     int size = 0;
 
     // if (buffer != NULL) {
-        // goto KillProcess;
-        size = backtrace(buffer, stack_size);
-        backtrace_symbols_fd(buffer, size, fd);
+    // goto KillProcess;
+    size = backtrace(buffer, stack_size);
+    backtrace_symbols_fd(buffer, size, fd);
     // }
     // size = backtrace(buffer, stack_size);
     // backtrace_symbols_fd(buffer, size, fd);
@@ -620,8 +615,8 @@ void error_handler(int signo)
     //     flog_err("%s\n", "err sigaction(?) failed");
     // }
 
-    csif_t *_csif_ = csif_get_session();
-    _csif_->curr_mask = &sa.sa_mask;
+    csif_t *_csession_ = csif_get_session();
+    _csession_->curr_mask = &sa.sa_mask;
 
     int fd = fileno(FLOGGER_);
     fseek(FLOGGER_, 0, SEEK_END);
@@ -644,7 +639,7 @@ void error_handler(int signo)
 //     }
 
 
-    /*sig*/longjmp(_csif_->jump_err_buff, 999);
+    /*sig*/longjmp(_csession_->jump_err_buff, 999);
 }
 
 // int init_error_signal(f_singal_t *ferr_signals) {
