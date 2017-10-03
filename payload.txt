@@ -1,7 +1,7 @@
 {"items": 
 [
     {
-        "name": "Enjoy the Feed Module!!",
+        "name": "Enjoy the C Handler Module!!",
         "index": "X",
         "optional": "0"
     },

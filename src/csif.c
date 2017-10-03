@@ -20,10 +20,7 @@
 #include <pthread.h>
 #include "csif.h"
 
-// char* csif_nmap_func[];
 #define _get_param_(KEY) FCGX_GetParam(KEY, request->envp)
-
-// csif_map *dyna_funcs = NULL;
 
 typedef int (*h)(FCGX_Request *, csif_t*);
 
@@ -38,8 +35,6 @@ struct csif_handler *dyna_funcs = NULL;
 static const long MAX_STDIN = 10240;
 int no_debug(FILE *__restrict __stream, const char *__restrict __format, ...) {return 1;}
 
-char *appname; //global apps deployment
-// static csif_LFHashTable thread_table;
 static __atomic_hash_n *thread_hash;
 static int total_workers, remain_workers;
 int csif_init(char** csif_nmap_func);
@@ -50,18 +45,24 @@ int strpos(const char *haystack, const char *needle);
 
 void* multi_thread_accept(void* sock_ptr);
 // void *thread_admin(void* sock);
-void *add_on_workers(void* sock);
+// void *add_on_workers(void* sock);
 int hook_socket(char* sock_port, int backlog, int workers, char** csif_nmap_func);
 sigset_t* handle_request(FCGX_Request *request);
 // int init_error_signal(f_singal_t *ferr_signals);
-void* init_all_error_signal(void *v);
+void* csif_init_signal(void *v);
+static char *appname = NULL; //global apps deployment
 static struct sigaction sa;
+static struct sigaction shutdown_sa;
+static int isUpAndRunning = 1, fcgi_c_handler_socket;
+static void *usr_req_handle = NULL;
+static FILE* logfile_writer = NULL;
+
 
 void* Malloc_Function(size_t sz) {
     return malloc(sz);
 }
 void Free_Function(void* v) {
-    // printf("%s\n", "FREE-------------- ");
+    // flog_info("%s\n", "FREE-------------- ");
     free(v);
 }
 
@@ -83,7 +84,7 @@ int csif_init(char** csif_nmap_func) {
     csif_buf_set_alloc_fn(Malloc_Function, Free_Function);
 
 
-    void *usr_req_handle = NULL;
+    usr_req_handle = NULL;
     char *error;
     usr_req_handle = dlopen(appname, RTLD_LAZY | RTLD_NOW);
     if (!usr_req_handle) {
@@ -94,11 +95,11 @@ int csif_init(char** csif_nmap_func) {
 
     while (*(csif_nmap_func + func_count++));
 
-    printf("total function = %d\n", --func_count); // Remove NULL
+    flog_info("total function = %d\n", --func_count); // Remove NULL
     dyna_funcs = malloc(func_count * sizeof(struct csif_handler));
 
     for (int f = 0; f < func_count; f++) {
-        // printf("%d\n", f);
+        // flog_info("%d\n", f);
         // struct csif_handler *func = (struct csif_handler *)csif_map_assign(dyna_funcs, csif_nmap_func[f]);
 
         dyna_funcs[f].name = calloc((strlen(csif_nmap_func[f]) + 1), sizeof(char));
@@ -114,11 +115,7 @@ int csif_init(char** csif_nmap_func) {
         }
     }
     return 1;
-    // never close the library
-    // if (dlclose(usr_req_handle) != 0) {
-    //     flog_err("%s\n", "Unable to load feed module lib:");
-    //     flog_err("%s\n", dlerror());
-    // }
+
 }
 
 /**To prevent -std=99 issue**/
@@ -135,20 +132,19 @@ char *duplistr(const char *str) {
 }
 
 int setup_logger(char* out_file_path) {
-    FILE* writeFile;
-    printf("%s\n", "initialize log file");
-    if ((writeFile = fopen(out_file_path, "ab+")) == NULL) {
-        printf("%s\n", "fopen source-file");
+    flog_info("%s\n", "initialize log file");
+    if ((logfile_writer = fopen(out_file_path, "ab+")) == NULL) {
+        flog_info("%s\n", "fopen source-file");
         return 0;
     }
 
-    int fd = fileno(writeFile);
+    int fd = fileno(logfile_writer);
 
     // dup2(fd, STDIN_FILENO);
     // dup2(fd, STDOUT_FILENO);
     // dup2(fd, STDERR_FILENO);
 
-    // fclose(writeFile);
+    // fclose(logfile_writer);
     if (dup2(fd, STDERR_FILENO) < 0) return 0;
 
 
@@ -196,7 +192,7 @@ sigset_t* handle_request(FCGX_Request *request) {
     if (value != NULL) {
         int i;
         for (i = 0; i < func_count; i++) {
-            if (strcmp(dyna_funcs[i].name, value) == 0) {       
+            if (strcmp(dyna_funcs[i].name, value) == 0) {
                 if (strcmp(_get_param_("REQUEST_METHOD"), "GET") == 0) {
                     char* query_string = duplistr(_get_param_("QUERY_STRING"));
                     if (!is_empty(query_string))
@@ -273,25 +269,6 @@ int file_existed(const char* fname) {
     else
         return 0;
 }
-// bug
-// char *getBodyContent(FCGX_Request *request) {
-//     char* clen = atoi(get_param("CONTENT_LENGTH"));
-//     if (clen) {
-//         int len = strtol(clen, &clen, 10);
-//         char *buf = Malloc_Function((len + 1) * sizeof(char));
-
-//         memset(buf, 0, len + 1);
-//         while (FCGX_GetStr(buf, len, request->in) > 0); /*{
-//         csif_write_out("%s ", buf);
-//     }*/
-//         while (FCGX_GetChar(request->in) != -1);
-
-//         return buf;
-//     } else {
-//         return NULL;
-//     }
-// }
-
 
 int strpos(const char *haystack, const char *needle)
 {
@@ -366,7 +343,7 @@ csif_t *csif_get_session(void) {
 int init_socket(char* sock_port, int backlog, int workers, int forkable, int signalable, int debugmode, char* logfile, char* solib, char** csif_nmap_func) {
 
     if (!csif_nmap_func[0]) {
-        printf("%s\n", "csif_nmap_func has no defined...");
+        flog_info("%s\n", "csif_nmap_func has no defined...");
         return 1;
     }
 
@@ -381,8 +358,12 @@ int init_socket(char* sock_port, int backlog, int workers, int forkable, int sig
         setup_logger(logfile);
     }
 
-    printf("%s\n", "Starting TCP Socket");
-    printf("sock_port=%s, backlog=%d\n", sock_port, backlog);
+    flog_info("%s\n", "Starting TCP Socket");
+    flog_info("sock_port=%s, backlog=%d\n", sock_port, backlog);
+
+
+    int *has_error_handler = malloc(sizeof(int));
+    *has_error_handler = signalable;
 
     if (forkable) {
         childPID = fork();
@@ -390,32 +371,29 @@ int init_socket(char* sock_port, int backlog, int workers, int forkable, int sig
         {
             if (childPID == 0) // child process
             {
-                if (signalable) {
-                    pthread_t pth;
-                    pthread_create(&pth, NULL, init_all_error_signal, "Process Error Signal");
-                }
+                pthread_t pth;
+                pthread_create(&pth, NULL, csif_init_signal, has_error_handler);
+
+                pthread_detach(pth);
 
                 return hook_socket(sock_port, backlog, workers, csif_nmap_func);
             } else {}//Parent process
         } else {// fork failed
-            printf("\n Fork failed..\n");
+            flog_info("%s\n", "Fork failed..");
             return 1;
         }
     } else {
-        if (signalable) {
-            pthread_t pth;
-            pthread_create(&pth, NULL, init_all_error_signal, "Process Error Signal");
-        }
+        pthread_t pth;
+        pthread_create(&pth, NULL, csif_init_signal, has_error_handler);
+        pthread_detach(pth);
 
         return hook_socket(sock_port, backlog, workers, csif_nmap_func);
     }
     return 0;
 }
 
-
-
 int hook_socket(char* sock_port, int backlog, int workers, char** csif_nmap_func) {
-    int sock = 0;
+
     FCGX_Init();
     if (!csif_init(csif_nmap_func)) {
         exit(1);
@@ -426,157 +404,114 @@ int hook_socket(char* sock_port, int backlog, int workers, char** csif_nmap_func
 
     if (sock_port) {
         if (backlog)
-            sock = FCGX_OpenSocket(sock_port, backlog);
+            fcgi_c_handler_socket = FCGX_OpenSocket(sock_port, backlog);
         else
-            sock = FCGX_OpenSocket(sock_port, 50);
+            fcgi_c_handler_socket = FCGX_OpenSocket(sock_port, 50);
     } else {
-        printf("%s\n", "argument wrong");
+        flog_info("%s\n", "argument wrong");
         exit(1);
     }
 
-    if (sock < 0) {
-        printf("%s\n", "unable to open the socket" );
+    if (fcgi_c_handler_socket < 0) {
+        flog_info("%s\n", "unable to open the socket" );
         exit(1);
     }
 
-    printf("%d workers in process", workers);
-    // csif_LF_init(&thread_table, workers + 10); // give some space
+    flog_info("%d workers in process\n", workers);
     thread_hash = __atomic_hash_n_init(workers + 10, read_t, free_t);
 
 
     if (workers == 1) {
         FCGX_Request request;
-        FCGX_InitRequest(&request, sock, 0);
+        FCGX_InitRequest(&request, fcgi_c_handler_socket, FCGI_FAIL_ACCEPT_ON_INTR);
 
-        printf("Socket on hook %s", sock_port);
+        flog_info("Socket on hook %s", sock_port);
 
         while (FCGX_Accept_r(&request) >= 0) {
             handle_request(&request);
             FCGX_Finish_r(&request);
         }
     } else {
-        for (;;) {
-            // at least 5 workers running
-            if (remain_workers < 5 ) {
-                pthread_t add_workers_t;
-                pthread_create(&add_workers_t, NULL, add_on_workers, &sock);
-                remain_workers = remain_workers + total_workers;
-            }
+        int i;
 
-            // usleep(1000 * 1000 * 5); // 5 secs sleep
-            sleep(5);
+        pthread_t pth_workers[total_workers];
+        for (i = 0; i < total_workers; i++) {
+            pthread_create(&pth_workers[i], NULL, multi_thread_accept, &fcgi_c_handler_socket);
+            __atomic_fetch_add(&remain_workers, 1, __ATOMIC_ACQUIRE);
+            pthread_detach(pth_workers[i]);
+        }
+
+BACKTO_WORKERS:
+        while (remain_workers == total_workers)
+            sleep(1);
+
+        if (isUpAndRunning) {
+
+            // for (i = 0; i < total_workers; i++) {
+            //     pthread_kill(pth_workers[i], SIGTSTP);
+            // }
+            pthread_t worker;
+            pthread_create(&worker, NULL, multi_thread_accept, &fcgi_c_handler_socket);
+            __atomic_fetch_add(&remain_workers, 1, __ATOMIC_ACQUIRE);
+            pthread_detach(worker);
+
+            flog_info("%s\n", "BACKTO_WORKERS...");
+
+            goto BACKTO_WORKERS;
         }
 
     }
 
-    printf("%s\n", "Exitingggg");
+    if (sock_port)
+        free(sock_port);
+    flog_info("%s\n", "Exiting");
     return EXIT_SUCCESS;
 }
 
 void *multi_thread_accept(void* sock_ptr) {
     int rc;
-    int* sock = (int*) sock_ptr;
+    int sock = *(int*) sock_ptr;
 
     FCGX_Request request;
-
-
-//     f_singal_t ferr_signals[] = {
-//         { SIGABRT, "SIGABRT", "", error_handler },
-// #ifdef SIGBUS
-//         { SIGBUS, "SIGBUS", "", error_handler },
-// #endif
-//         { SIGFPE, "SIGFPE", "", error_handler },
-//         { SIGILL, "SIGILL", "", error_handler },
-//         { SIGIOT, "SIGIOT", "", error_handler },
-//         { SIGSEGV, "SIGSEGV", "", error_handler},
-//         { 0, NULL, "", NULL }
-//     };
-
-    if (FCGX_InitRequest(&request, *sock, 0) != 0) {
-        printf("Can not init request\n");
+    if (FCGX_InitRequest(&request, sock, FCGI_FAIL_ACCEPT_ON_INTR) != 0) {
+        flog_info("%s\n", "Can not init request");
         return NULL;
     }
-    for (;;) {
+    while (isUpAndRunning) {
         static pthread_mutex_t accept_mutex = PTHREAD_MUTEX_INITIALIZER; // this is lock for all threads
 
-        // trying to accept new request
         pthread_mutex_lock(&accept_mutex);
         rc = FCGX_Accept_r(&request);
         pthread_mutex_unlock(&accept_mutex);
-
         if (rc < 0) {
-            printf("%s\n", "Can not accept new request");
-            break;
+            flog_info("%s\n", "Cannot accept new request");
+            __atomic_fetch_sub(&remain_workers, 1, __ATOMIC_RELEASE);
+            FCGX_Finish_r(&request); // this will free all the fcgiparams memory and request
+
+            goto EXIT_WORKER;
         }
 
         sigset_t *_mask_ = handle_request(&request);
 
-        // server_name = FCGX_GetParam("SERVER_NAME", request.envp);
-
-        // FCGX_PutS("Content-type: text/html\r\n", request.out);
-        // FCGX_PutS("\r\n", request.out);
-        // FCGX_PutS("<html>\r\n", request.out);
-        // FCGX_PutS("<head>\r\n", request.out);
-        // FCGX_PutS("<title>FastCGI Hello! (multi-threaded C, fcgiapp library)</title>\r\n", request.out);
-        // FCGX_PutS("</head>\r\n", request.out);
-        // FCGX_PutS("<body>\r\n", request.out);
-        // FCGX_PutS("<h1>FastCGI Hello! (multi-threaded C, fcgiapp library)</h1>\r\n", request.out);
-        // FCGX_PutS("<p>Request accepted from host <i>", request.out);
-        // FCGX_PutS(server_name ? server_name : "?", request.out);
-        // FCGX_PutS("</i></p>\r\n", request.out);
-        // FCGX_PutS("</body>\r\n", request.out);
-        // FCGX_PutS("</html>\r\n", request.out);
         FCGX_Finish_r(&request); // this will free all the fcgiparams memory and request
         /***If _mask_ is not NULL, means there is a error signal, need to suspend the thread completely **/
         if (_mask_) {
             // For detached threads, the system recycles its underlying resources automatically after the thread terminates.
-            pthread_detach(pthread_self());
-            remain_workers--; // release one worker
-            printf("%s\n", "Detached");
-            sigsuspend(_mask_);
-            // pthread_exit(NULL);
+            __atomic_fetch_sub(&remain_workers, 1, __ATOMIC_RELEASE);
+            // flog_info("%s\n", "Detached");
+            // sigsuspend(_mask_);
+            pthread_exit(NULL);
+            return NULL;
         }
     }
+EXIT_WORKER:
+    pthread_exit(NULL);
     return NULL;
 }
-
-void *add_on_workers(void* sock) {
-    int i;
-    printf("add on workers = %d\n", total_workers);
-    pthread_t pid[total_workers];
-    for (i = 0; i < total_workers; i++) {
-        pthread_create(&pid[i], NULL, multi_thread_accept, sock);
-    }
-
-    for (i = 0; i < total_workers; i++) {
-        pthread_join(pid[i], NULL);
-        printf("%s\n", "Detached from thread");
-    }
-
-    pthread_detach(pthread_self());
-    // pthread_exit(NULL);
-    return NULL;
-}
-
-// void *thread_admin(void* sock) {
-//     while (1) {
-//         // at least 5 workers running
-//         if (remain_workers < 5 ) {
-//             pthread_t add_workers_t;
-//             pthread_create(&add_workers_t, NULL, add_on_workers, sock);
-//             remain_workers = remain_workers + total_workers;
-//         }
-
-//         usleep(1000 * 1000 * 5); // 5 secs sleep
-//     }
-
-//     // pthread_exit(NULL);
-//     pthread_detach(pthread_self());
-
-// }
 
 /***Error Signal Handler Scope***/
 void error_handler(int signo);
+void shut_down_handler(int signo);
 void _backtrace(int fd, int signo,  int stack_size);
 
 
@@ -597,88 +532,115 @@ void _backtrace(int fd, int signo,  int stack_size) {
 //     kill(getpid(), signo);
 }
 
-void error_handler(int signo)
-{
-    // f_singal_t *sig;
-    // struct sigaction sa;
+void shut_down_handler(int signo) {
+    if (isUpAndRunning) {
+        flog_info("%s\n", "Shutting Down...");
 
-    // // for (sig = ferr_signals; sig->signo != 0; sig++) {
-    // //     if (sig->signo == signo) {
-    // //         break;
-    // //     }
-    // // }
-    // memset(&sa, 0, sizeof(struct sigaction));
-    // sa.sa_handler = error_handler;
-    // sigemptyset(&sa.sa_mask);
-    // if (sigaction(signo, &sa, NULL) == -1) {
-    //     // flog_err("err sigaction(%s) failed", sig->signame);
-    //     flog_err("%s\n", "err sigaction(?) failed");
-    // }
+        isUpAndRunning = 0;
 
+        FCGX_ShutdownPending();
+
+        /** releasing all the workers **/
+// #ifdef __APPLE__
+//         close(fcgi_c_handler_socket);
+// #else
+//         shutdown(fcgi_c_handler_socket, 2);
+// #endif
+        shutdown(fcgi_c_handler_socket, 2);
+        close(fcgi_c_handler_socket);
+
+
+        while (remain_workers > 0) {
+            sleep(1); // Waiting for 3 sec for other pending thread to exit
+            // flog_info("worker left %d\n", remain_workers);
+        }
+
+        if (usr_req_handle)  {
+            if (dlclose(usr_req_handle) != 0) {
+                flog_err("Error while shutting down %s\n", dlerror());
+            }
+        }
+        __atomic_hash_n_destroy(thread_hash);
+
+
+        for (int f = 0; f < func_count; f++) {
+            free(dyna_funcs[f].name);
+        }
+        free(dyna_funcs);
+
+        if (logfile_writer)
+            fclose(logfile_writer);
+
+
+        if (appname)
+            free(appname); // free lib app name
+
+
+        sleep(3);
+    }
+}
+
+void error_handler(int signo) {
     csif_t *_csession_ = csif_get_session();
-    _csession_->curr_mask = &sa.sa_mask;
+
+    if (isUpAndRunning) {
+        _csession_->curr_mask = &sa.sa_mask;
+    } else {
+        _csession_->curr_mask = NULL;
+    }
 
     int fd = fileno(FLOGGER_);
     fseek(FLOGGER_, 0, SEEK_END);
     _backtrace(fd, signo, 10);
 
-//     switch (signo) {
-//     case SIGABRT:
-//     case SIGFPE:
-//     case SIGILL:
-//     // case SIGIOT:
-//     case SIGSEGV:
-// #ifdef SIGBUS
-//     case SIGBUS:
-// #endif
-//         sigsuspend(&sa.sa_mask);
-//         break;
-//     default:
-//         break;
-
-//     }
-
-
     /*sig*/longjmp(_csession_->jump_err_buff, 999);
+
 }
 
-// int init_error_signal(f_singal_t *ferr_signals) {
-//     f_singal_t *sig;
-//     struct sigaction sa;
-//     printf("%s\n", "initialize signals");
-//     for (sig = ferr_signals; sig->signo != 0; sig++) {
-//         memset(&sa, 0, sizeof(struct sigaction));
-//         sa.sa_handler = sig->handler;
-//         sigemptyset(&sa.sa_mask);
-//         if (sigaction(sig->signo, &sa, NULL) == -1) {
-//             printf("sigaction(%s) failed", sig->signame);
-//             return 0;
-//         }
-//     }
-//     return 1;
-// }
+void* csif_init_signal(void *v) {
+    flog_info("%s\n", "initializing...");
 
-void* init_all_error_signal(void *v) {
-    printf("%s\n", "initialize signals");
-    memset(&sa, 0, sizeof(struct sigaction));
-    sa.sa_handler = error_handler;
-    sigemptyset(&sa.sa_mask);
+    int has_error_handler = *((int *) v);
 
-    sigaction(SIGABRT, &sa, NULL);
-    sigaction(SIGFPE, &sa, NULL);
-    sigaction(SIGILL, &sa, NULL);
-    sigaction(SIGIOT, &sa, NULL);
-    sigaction(SIGSEGV, &sa, NULL);
+    if (has_error_handler) {
+        memset(&sa, 0, sizeof(struct sigaction));
+        sa.sa_handler = error_handler;
+        sigemptyset(&sa.sa_mask);
+
+        sigaction(SIGABRT, &sa, NULL);
+        sigaction(SIGFPE, &sa, NULL);
+        sigaction(SIGILL, &sa, NULL);
+        sigaction(SIGIOT, &sa, NULL);
+        sigaction(SIGSEGV, &sa, NULL);
 #ifdef SIGBUS
-    sigaction(SIGBUS, &sa, NULL);
+        sigaction(SIGBUS, &sa, NULL);
 #endif
-
-    while (1) {
-        sleep(3000);
     }
 
-    pthread_detach(pthread_self());
-    return NULL;
+    free(v);
+
+    /** Shut down handler **/
+    memset(&shutdown_sa, 0, sizeof(struct sigaction));
+    shutdown_sa.sa_handler = shut_down_handler;
+    sigemptyset(&shutdown_sa.sa_mask);
+    // sigaction(SIGKILL, &shutdown_sa, NULL);
+    sigaction(SIGINT, &shutdown_sa, NULL);
+    sigaction(SIGQUIT, &shutdown_sa, NULL);
+
+
+    flog_info("%s\n", "Please do not stop the process while service is starting...");
+
+
+    while (remain_workers != total_workers)
+        sleep(1);
+
+    flog_info("%s\n", "Service has started");
+
+    while (remain_workers > 0) {
+        sleep(1);
+    }
+
+    pthread_exit(NULL);
 }
 
 void csif_write_http_status(FCGX_Request * request, uint16_t code) {

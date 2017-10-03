@@ -12,21 +12,19 @@
 static void usage(void);
 char* concat(const char *s1, const  char *s2);
 char *trim_space(char *str);
-void execute(char **argv);
-char** prepare_so(int argc, char *argv[]);
 
 static void usage(void) {
   fprintf(stderr, "Available options:\n");
   fprintf(stderr, "\t-a\tthe ip address which binding to\n");
   fprintf(stderr, "\t-p\tport number to specified, not for -s\n");
   fprintf(stderr, "\t-s\tunix domain socket path to generate, not for -p\n");
-  fprintf(stderr, "\t-q\tnumber of socket backlog\n");
+  fprintf(stderr, "\t-q\tnumber of socket backlog - number of connection can hold\n");
   fprintf(stderr, "\t-w\tnumber of worker process\n");
   fprintf(stderr, "\t-l\tlog file path\n");
   fprintf(stderr, "\t-e\tsignal handling\n");
   fprintf(stderr, "\t-f\tFork Daemon process\n");
   fprintf(stderr, "\t-d\tRun on debug Mode\n");
-  fprintf(stderr, "\t-o\tDynamic Link shared object file\n");
+  // fprintf(stderr, "\t-o\tDynamic Link shared object file\n");
   fprintf(stderr, "\t-h\tdisplay usage\n");
   fprintf(stderr, "\t-v\tdisplay version\n");
   exit(1);
@@ -55,57 +53,6 @@ char *trim_space(char *str) {
   return str;
 }
 
-
-void execute(char **argv) {
-  pid_t  pid;
-  int    status;
-  if ((pid = fork()) < 0) {     /* fork a child process           */
-    printf("*** ERROR: forking child process failed\n");
-    exit(1);
-  }
-  else if (pid == 0) {          /* for the child process:         */
-    if (execvp(*argv, argv) < 0) {     /* execute the command  */
-      printf("*** ERROR: failed process\n");
-      usage();
-      exit(1);
-    }
-  }
-  else {
-    while (wait(&status) != pid);       /* wait for completion  */
-  }
-  // while (*argv) {
-  //   printf("%s\n", *argv++);
-  // }
-  // printf("%s\n", "done");
-}
-
-char** prepare_so(int argc, char *argv[]) {
-  char **args = malloc((argc + 6) * sizeof(char*));
-  char** exec_ = args;
-  char *appname;
-
-  *args++ = "/usr/bin/gcc";
-  *args++ = "-Wall";
-  *args++ = "-shared";
-
-  *args++ = "-o";
-  appname = concat("lib", argv[2]); //output
-  *args++ = concat(appname, ".so"); //output
-
-  *args++ = "-fPIC";
-  argc -= 3;
-  argv += 3;
-  memcpy(args, argv, argc * sizeof(char*));
-  // *args++ = "-rdynamic";
-  // *args++ = "-Wl,-rpath";
-  // *args++ = "/usr/local/lib";
-  // *args++ = "-lfcgi";
-  // *args++ = "-ldl";
-  // *args++ = "-lcsif";
-  *(args + argc) = NULL;
-  return exec_;
-}
-
 int
 csif_main (int argc, char *argv[], char* all_funs[]) {
 
@@ -127,13 +74,7 @@ csif_main (int argc, char *argv[], char* all_funs[]) {
 
   csif_dbg = &no_debug;
 
-  if (strcmp(argv[1], "build") == 0) {
-    char** exec_ = prepare_so(argc, argv);
-    execute(exec_); //compile
-    return 0;
-  }
-
-  while ((ch = getopt (argc, argv, "defvhp:s:q:w:l:o:")) != -1) {
+  while ((ch = getopt (argc, argv, "defvhp:s:q:w:l:")) != -1) {
     switch (ch) {
     case 'p':
       sock_port = concat(":", optarg);
@@ -155,8 +96,8 @@ csif_main (int argc, char *argv[], char* all_funs[]) {
       forkable = 1; break;
     case 'd':
       debugmode = 1; break;
-    case 'o':
-      appname = trim_space(optarg); break;
+    // case 'o':
+    //   appname = trim_space(optarg); break;
     case 'v':
       printf("-version : %s\n", "0.0.1");
       return -1;
