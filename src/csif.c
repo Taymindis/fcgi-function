@@ -18,6 +18,7 @@
 #include <fcgiapp.h>
 #include <dlfcn.h>
 #include <pthread.h>
+#include <sys/socket.h>
 #include "csif.h"
 
 #define _get_param_(KEY) FCGX_GetParam(KEY, request->envp)
