@@ -58,7 +58,6 @@ static int isUpAndRunning = 1, fcgi_c_handler_socket;
 static void *usr_req_handle = NULL;
 static FILE* logfile_writer = NULL;
 
-
 void* Malloc_Function(size_t sz) {
     return malloc(sz);
 }
