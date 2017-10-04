@@ -562,8 +562,8 @@ void shut_down_handler(int signo) {
         }
         __atomic_hash_n_destroy(thread_hash);
 
-
-        for (int f = 0; f < func_count; f++) {
+        int f;
+        for (f = 0; f < func_count; f++) {
             free(dyna_funcs[f].name);
         }
         free(dyna_funcs);
