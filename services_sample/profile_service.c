@@ -12,8 +12,8 @@ int getProfile(FCGX_Request *request, ch_session_t * csession) {
 	// printf("%s\n", session->json);
 	// cJSON * ret;
 	/* Generate a seg fault, for testing purpose */
-	 static int ss = 0;
-	 if (ss++ < 5000) *(int *)NULL = 0;
+	// static int ss = 0;
+	// if (ss++ < 5000) *(int *)NULL = 0;
 
 	if (session->query_str) {
 		char *out = ch_getParam("userId", session->query_str);
