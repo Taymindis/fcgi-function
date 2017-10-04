@@ -114,7 +114,7 @@ ch_main (int argc, char *argv[], char* all_funs[]) {
   if (appname && *appname) {
     int len = strlen(appname);
     if (appname[len - 3] == '.' && appname[len - 2] == 's' && appname[len - 1] == 'o' ) {
-      // char *install_lib[4] = {"mv", appname, "/usr/local/c_handler/", NULL};
+      // char *install_lib[4] = {"mv", appname, "/usr/local/ngxch/", NULL};
       // execute(install_lib);
       init_socket(sock_port, backlog, workers, forkable, signalable, debugmode, logfile, concat("./", appname), all_funs);
     } else {

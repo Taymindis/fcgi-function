@@ -1,5 +1,5 @@
-#include <c_handler/ch_core.h>
-// #include <c_handler/ch_mem_detect.h>
+#include <ngxch/ch_core.h>
+// #include <ngxch/ch_mem_detect.h>
 
 int getProfile(FCGX_Request *request, ch_session_t * csession) {
 	flog_info("%s\n", "you reach here with get Request");

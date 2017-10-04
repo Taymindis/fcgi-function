@@ -54,7 +54,7 @@ void* ch_init_signal(void *v);
 static char *appname = NULL; //global apps deployment
 static struct sigaction sa;
 static struct sigaction shutdown_sa;
-static int isUpAndRunning = 1, fcgi_c_handler_socket;
+static int isUpAndRunning = 1, fcgi_ngxch_socket;
 static void *usr_req_handle = NULL;
 static FILE* logfile_writer = NULL;
 
@@ -404,15 +404,15 @@ int hook_socket(char* sock_port, int backlog, int workers, char** ch_nmap_func) 
 
     if (sock_port) {
         if (backlog)
-            fcgi_c_handler_socket = FCGX_OpenSocket(sock_port, backlog);
+            fcgi_ngxch_socket = FCGX_OpenSocket(sock_port, backlog);
         else
-            fcgi_c_handler_socket = FCGX_OpenSocket(sock_port, 50);
+            fcgi_ngxch_socket = FCGX_OpenSocket(sock_port, 50);
     } else {
         flog_info("%s\n", "argument wrong");
         exit(1);
     }
 
-    if (fcgi_c_handler_socket < 0) {
+    if (fcgi_ngxch_socket < 0) {
         flog_info("%s\n", "unable to open the socket" );
         exit(1);
     }
@@ -423,7 +423,7 @@ int hook_socket(char* sock_port, int backlog, int workers, char** ch_nmap_func) 
 
     if (workers == 1) {
         FCGX_Request request;
-        FCGX_InitRequest(&request, fcgi_c_handler_socket, FCGI_FAIL_ACCEPT_ON_INTR);
+        FCGX_InitRequest(&request, fcgi_ngxch_socket, FCGI_FAIL_ACCEPT_ON_INTR);
 
         flog_info("Socket on hook %s", sock_port);
 
@@ -436,7 +436,7 @@ int hook_socket(char* sock_port, int backlog, int workers, char** ch_nmap_func) 
 
         pthread_t pth_workers[total_workers];
         for (i = 0; i < total_workers; i++) {
-            pthread_create(&pth_workers[i], NULL, multi_thread_accept, &fcgi_c_handler_socket);
+            pthread_create(&pth_workers[i], NULL, multi_thread_accept, &fcgi_ngxch_socket);
             __atomic_fetch_add(&remain_workers, 1, __ATOMIC_ACQUIRE);
             pthread_detach(pth_workers[i]);
         }
@@ -451,7 +451,7 @@ BACKTO_WORKERS:
             //     pthread_kill(pth_workers[i], SIGTSTP);
             // }
             pthread_t worker;
-            pthread_create(&worker, NULL, multi_thread_accept, &fcgi_c_handler_socket);
+            pthread_create(&worker, NULL, multi_thread_accept, &fcgi_ngxch_socket);
             __atomic_fetch_add(&remain_workers, 1, __ATOMIC_ACQUIRE);
             pthread_detach(worker);
 
@@ -542,12 +542,12 @@ void shut_down_handler(int signo) {
 
         /** releasing all the workers **/
 // #ifdef __APPLE__
-//         close(fcgi_c_handler_socket);
+//         close(fcgi_ngxch_socket);
 // #else
-//         shutdown(fcgi_c_handler_socket, 2);
+//         shutdown(fcgi_ngxch_socket, 2);
 // #endif
-        shutdown(fcgi_c_handler_socket, 2);
-        close(fcgi_c_handler_socket);
+        shutdown(fcgi_ngxch_socket, 2);
+        close(fcgi_ngxch_socket);
 
 
         while (remain_workers > 0) {

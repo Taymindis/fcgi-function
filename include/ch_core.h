@@ -8,7 +8,7 @@ extern "C" {
 #endif
 
 #ifdef FDYMEMDETECT
-#include <c_handler/fdy_mem_detect.h>
+#include <ngxch/fdy_mem_detect.h>
 #endif
 
 #include <stdio.h>
