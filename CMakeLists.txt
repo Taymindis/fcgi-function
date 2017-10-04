@@ -62,6 +62,7 @@ SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wstrict-prototypes -Wmissing-prototyp
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wmissing-declarations -Wshadow -Wpointer-arith -Wcast-qual")
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wsign-compare -Iinclude -std=c11 -pedantic")
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
+
 # Not need to export dynamic symbol out, -rdyanmic only for user application
 # SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "-rdynamic") # LDFLAGS=
 #  gcc -fPIC -pie -o libngxch.so src/ch_core.c src/ch_pool.c src/ch_json.c src/ch_cli.c -Iinclude -Wl,-E -Wl,--whole-archive -lfcgi -ldl -Wl,--no-whole-archive
