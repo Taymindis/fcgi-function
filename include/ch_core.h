@@ -1,5 +1,5 @@
-#ifndef __csif_h__
-#define __csif_h__
+#ifndef __ch_h__
+#define __ch_h__
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
@@ -8,7 +8,7 @@ extern "C" {
 #endif
 
 #ifdef FDYMEMDETECT
-#include <csif/fdy_mem_detect.h>
+#include <c_handler/fdy_mem_detect.h>
 #endif
 
 #include <stdio.h>
@@ -22,10 +22,10 @@ extern "C" {
 #include <setjmp.h>
 #include <sys/time.h>
 
-#include "csif_pool.h"
-#include "csif_hash.h"
-#include "csif_map.h"
-#include "csif_buf.h"
+#include "ch_pool.h"
+#include "ch_hash.h"
+#include "ch_map.h"
+#include "ch_buf.h"
 
 
 #include "binary_array.h"
@@ -44,7 +44,7 @@ extern "C" {
 
 
 typedef struct {
-	csif_pool *pool;
+	ch_pool *pool;
 
 	// unsigned long int _identifier;
 
@@ -56,47 +56,47 @@ typedef struct {
 	// char** query_params;
 	jmp_buf jump_err_buff;
 	sigset_t *curr_mask;
-} csif_t;
+} ch_session_t;
 
 int no_debug(FILE *__restrict __stream, const char *__restrict __format, ...);
-int (*csif_dbg)(FILE *__restrict __stream, const char *__restrict __format, ...);
+int (*ch_dbg)(FILE *__restrict __stream, const char *__restrict __format, ...);
 
 static const char AMPERSAND_DELIM = '&';
 static const char EQ_DELIM = '=';
 
-int csif_main (int argc, char *argv[], char* all_func[]);
-int init_socket(char* sock_port, int backlog, int workers, int forkable, int signalable, int debugmode, char* logfile, char* solib, char** csif_nmap_func);
+int ch_main (int argc, char *argv[], char* all_func[]);
+int init_socket(char* sock_port, int backlog, int workers, int forkable, int signalable, int debugmode, char* logfile, char* solib, char** ch_nmap_func);
 int file_existed(const char* fname);
 int setup_logger(char* out_file_path);
 void print_time(char* buff);
 
-#define csif_write_out(...) FCGX_FPrintF(request->out, __VA_ARGS__)
+#define ch_write_out(...) FCGX_FPrintF(request->out, __VA_ARGS__)
 
-// #define get_json(csif_t) csif_t->json
-#define csif_alloc(csif_t, sz) falloc(&csif_t->pool, sz)
-#define csif_pool_sz(csif_t) blk_size(csif_t->pool)
-//There is not free as csif will free itself
+// #define get_json(ch_session_t) ch_session_t->json
+#define ch_alloc(ch_session_t, sz) falloc(&ch_session_t->pool, sz)
+#define ch_pool_sz(ch_session_t) blk_size(ch_session_t->pool)
+//There is not free as csession will free itself
 
 #define STRINGIFY(x) #x
 #define STR(x) STRINGIFY(x)
 
 size_t slen(const char* str);
-int csif_isspace(const char* s);
+int ch_isspace(const char* s);
 
 char *duplistr(const char *str);
 int is_empty(char *s);
 
-csif_t *csif_get_session(void);
+ch_session_t *ch_get_session(void);
 
 // char *getBodyContent(FCGX_Request *request);
-long csif_readContent(FCGX_Request *request, char** content);
-void* csif_getParam(const char *key, char* query_str);
+long ch_readContent(FCGX_Request *request, char** content);
+void* ch_getParam(const char *key, char* query_str);
 
 
-void csif_write_http_status(FCGX_Request *request, uint16_t code);
-void csif_write_default_header(FCGX_Request *request);
-void csif_write_jsonp_header(FCGX_Request *request);
-void csif_write_json_header(FCGX_Request *request);
+void ch_write_http_status(FCGX_Request *request, uint16_t code);
+void ch_write_default_header(FCGX_Request *request);
+void ch_write_jsonp_header(FCGX_Request *request);
+void ch_write_json_header(FCGX_Request *request);
 
 
 
@@ -106,10 +106,10 @@ void csif_write_json_header(FCGX_Request *request);
 // #else
 // #define fdebug(M, ...)
 // #endif
-#ifdef CSIF_MACOSX
+#ifdef CH_MACOSX
 #define fdebug(M, ...) { char buff__[20]; print_time(buff__); fprintf(FLOGGER_, "MACOSX -- DEBUG - %s - %s:%d: " M "\n", buff__, __FILE__, __LINE__, ##__VA_ARGS__); }
 #else
-#define fdebug(M, ...) { char buff__[20]; print_time(buff__); (*csif_dbg)(FLOGGER_, "DEBUG - %s - %s:%d: " M "\n", buff__, __FILE__, __LINE__, ##__VA_ARGS__); }
+#define fdebug(M, ...) { char buff__[20]; print_time(buff__); (*ch_dbg)(FLOGGER_, "DEBUG - %s - %s:%d: " M "\n", buff__, __FILE__, __LINE__, ##__VA_ARGS__); }
 #endif
 #define clean_errno() (errno == 0 ? "None" : strerror(errno))
 

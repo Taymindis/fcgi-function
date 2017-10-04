@@ -33,31 +33,31 @@ Install the project...
 
 -- Install configuration: ""
 
--- Installing: /usr/local/lib/libcsif.dylib
+-- Installing: /usr/local/lib/libc_handler.dylib
 
--- Installing: /usr/local/lib/libcsif.a
+-- Installing: /usr/local/lib/libc_handler.a
 
--- Installing: /usr/local/include/csif/csif.h
+-- Installing: /usr/local/include/c_handler/ch_core.h
 
--- Installing: /usr/local/include/csif/csif_json.h
+-- Installing: /usr/local/include/c_handler/ch_json.h
 
--- Installing: /usr/local/include/csif/csif_hash.h
+-- Installing: /usr/local/include/c_handler/ch_hash.h
 
--- Installing: /usr/local/include/csif/csif_LFHashTable.h
+-- Installing: /usr/local/include/c_handler/ch_LFHashTable.h
 
--- Installing: /usr/local/include/csif/csif_map.h
+-- Installing: /usr/local/include/c_handler/ch_map.h
 
--- Installing: /usr/local/include/csif/csif_buf.h
+-- Installing: /usr/local/include/c_handler/ch_buf.h
 
--- Installing: /usr/local/include/csif/csif_pool.h
+-- Installing: /usr/local/include/c_handler/ch_pool.h
 
 
 ### 4. build a simple program by execute 
 
-> gcc ../services_sample/profile_service.c -lcsif -lfcgi -rdynamic -o simple_service
+> gcc ../services_sample/profile_service.c -lc_handler -lfcgi -rdynamic -o simple_service
 
 #### For C++
-> g++ -std=c++11 ../services_sample/cpp_profile_service.cpp -lcsif -lfcgi -rdynamic -o simple_service
+> g++ -std=c++11 ../services_sample/cpp_profile_service.cpp -lc_handler -lfcgi -rdynamic -o simple_service
 
 ### 5. when you type 
 
@@ -158,21 +158,21 @@ Available options:
 ### 2. type "sudo make uninstall" 
 Then result
 
--- Uninstalling /usr/local/lib/libcsif.dylib
+-- Uninstalling /usr/local/lib/libc_handler.dylib
 
--- Uninstalling /usr/local/lib/libcsif.a
+-- Uninstalling /usr/local/lib/libc_handler.a
 
--- Uninstalling /usr/local/include/csif/csif.h
+-- Uninstalling /usr/local/include/c_handler/ch_core.h
 
--- Uninstalling /usr/local/include/csif/csif_json.h
+-- Uninstalling /usr/local/include/c_handler/ch_json.h
 
--- Uninstalling /usr/local/include/csif/csif_hash.h
+-- Uninstalling /usr/local/include/c_handler/ch_hash.h
 
--- Uninstalling /usr/local/include/csif/csif_LFHashTable.h
+-- Uninstalling /usr/local/include/c_handler/ch_LFHashTable.h
 
--- Uninstalling /usr/local/include/csif/csif_map.h
+-- Uninstalling /usr/local/include/c_handler/ch_map.h
 
--- Uninstalling /usr/local/include/csif/csif_buf.h
+-- Uninstalling /usr/local/include/c_handler/ch_buf.h
 
--- Uninstalling /usr/local/include/csif/csif_pool.h
+-- Uninstalling /usr/local/include/c_handler/ch_pool.h
 

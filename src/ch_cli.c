@@ -7,7 +7,7 @@
 #include <sys/wait.h>
 #include <fcgiapp.h>
 
-#include "csif.h"
+#include "ch_core.h"
 
 static void usage(void);
 char* concat(const char *s1, const  char *s2);
@@ -54,7 +54,7 @@ char *trim_space(char *str) {
 }
 
 int
-csif_main (int argc, char *argv[], char* all_funs[]) {
+ch_main (int argc, char *argv[], char* all_funs[]) {
 
   char *sock_port,
        *appname = NULL,
@@ -72,7 +72,7 @@ csif_main (int argc, char *argv[], char* all_funs[]) {
     return -1;
   }
 
-  csif_dbg = &no_debug;
+  ch_dbg = &no_debug;
 
   while ((ch = getopt (argc, argv, "defvhp:s:q:w:l:")) != -1) {
     switch (ch) {
@@ -114,7 +114,7 @@ csif_main (int argc, char *argv[], char* all_funs[]) {
   if (appname && *appname) {
     int len = strlen(appname);
     if (appname[len - 3] == '.' && appname[len - 2] == 's' && appname[len - 1] == 'o' ) {
-      // char *install_lib[4] = {"mv", appname, "/usr/local/csif/", NULL};
+      // char *install_lib[4] = {"mv", appname, "/usr/local/c_handler/", NULL};
       // execute(install_lib);
       init_socket(sock_port, backlog, workers, forkable, signalable, debugmode, logfile, concat("./", appname), all_funs);
     } else {

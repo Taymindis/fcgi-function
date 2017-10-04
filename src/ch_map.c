@@ -8,20 +8,20 @@
 #endif
 // gcc sarray.c -DSYNC=true
 // same with Sarray, itis a string key based
-#include "csif_map.h"
+#include "ch_map.h"
 
-static CSIF_MAP_MALLOC_FN csif_map_malloc_fn = malloc;
-static CSIF_MAP_FREE_FN csif_map_free_fn = free;
+static CH_MAP_MALLOC_FN ch_map_malloc_fn = malloc;
+static CH_MAP_FREE_FN ch_map_free_fn = free;
 
-void csif_map_alloc_fn(CSIF_MAP_MALLOC_FN malloc_fun, CSIF_MAP_FREE_FN free_fun) {
-	csif_map_malloc_fn = malloc_fun;
-	csif_map_free_fn = free_fun;
+void ch_map_alloc_fn(CH_MAP_MALLOC_FN malloc_fun, CH_MAP_FREE_FN free_fun) {
+	ch_map_malloc_fn = malloc_fun;
+	ch_map_free_fn = free_fun;
 }
 
-csif_map* csif_map_init(size_t length,  size_t object_size) {
-	unsigned char ** s = csif_map_malloc_fn((length + 1) * sizeof(unsigned char*));
+ch_map* ch_map_init(size_t length,  size_t object_size) {
+	unsigned char ** s = ch_map_malloc_fn((length + 1) * sizeof(unsigned char*));
     memset(s, 0x00, (length + 1) * sizeof(unsigned char*)); // Make the footstop
-	csif_map *_map = csif_map_malloc_fn(sizeof(csif_map));
+	ch_map *_map = ch_map_malloc_fn(sizeof(ch_map));
 	_map->bucket = s;
 	_map->used = 0;
 	_map->total = length;
@@ -32,18 +32,18 @@ csif_map* csif_map_init(size_t length,  size_t object_size) {
 	return _map;
 }
 
-unsigned char* csif_map_assign(csif_map *map_, SKey key) {
+unsigned char* ch_map_assign(ch_map *map_, SKey key) {
 	if (map_->total - map_->used <= 0) {
 		map_->total *= 2;
-		unsigned char **newBucket = csif_map_malloc_fn(map_->total * sizeof(unsigned char*));
+		unsigned char **newBucket = ch_map_malloc_fn(map_->total * sizeof(unsigned char*));
 		memcpy(newBucket, map_->bucket, map_->used * sizeof(unsigned char*));
-		csif_map_free_fn(map_->bucket);
+		ch_map_free_fn(map_->bucket);
 		map_->bucket = newBucket;
 	}
 	unsigned char* __return = NULL;
 	unsigned char** bucket = map_->bucket;
 	unsigned long slen = strlen(key) + 1;
-	unsigned char *key_object = csif_map_malloc_fn(slen + map_->type_sz + 1);
+	unsigned char *key_object = ch_map_malloc_fn(slen + map_->type_sz + 1);
 	memcpy(key_object, key, slen);
 
 	bucket[map_->used++] = (unsigned char*) key_object;
@@ -52,7 +52,7 @@ unsigned char* csif_map_assign(csif_map *map_, SKey key) {
 	return __return;
 }
 
-unsigned char* csif_map_get(csif_map *map_, SKey key) {
+unsigned char* ch_map_get(ch_map *map_, SKey key) {
 	unsigned char** bucket = map_->bucket;
     int i;
     unsigned long slen = strlen(key) + 1;
@@ -65,7 +65,7 @@ unsigned char* csif_map_get(csif_map *map_, SKey key) {
 	return __return;
 }
 
- // int csif_map_read(csif_map *map_, SKey key, unsigned char*__return) {
+ // int ch_map_read(ch_map *map_, SKey key, unsigned char*__return) {
  // 	unsigned char** bucket = map_->bucket;
  //    int i;
  //    unsigned long slen = strlen(key) + 1;
@@ -80,7 +80,7 @@ unsigned char* csif_map_get(csif_map *map_, SKey key) {
  // }
 
 
- // int csif_map_splice(csif_map *map_, SKey key, unsigned char*__return) {
+ // int ch_map_splice(ch_map *map_, SKey key, unsigned char*__return) {
  // 	unsigned char **src, **ptr = map_->bucket;
  // 	unsigned char *ret;
  //    int i;
@@ -96,12 +96,12 @@ unsigned char* csif_map_get(csif_map *map_, SKey key) {
  // 	while (*(++src)) *ptr++ = *src;
  // 	*ptr = '\000';
  // 	memcpy(__return, (unsigned char*)((uintptr_t)ret + slen), map_->type_sz + 1);
- // 	csif_map_free_fn(ret);
+ // 	ch_map_free_fn(ret);
  // 	map_->used--;
  // 	return 1;
  // }
 
-int csif_map_remove(csif_map *map_, SKey key) {
+int ch_map_remove(ch_map *map_, SKey key) {
 	unsigned char **src, **ptr = map_->bucket;
 	unsigned char *ret;
 	// int slen = strlen(key) + 1
@@ -115,18 +115,18 @@ FOUND:
 	ret = *ptr;
 	while (*(++src)) *ptr++ = *src;
 	*ptr = '\000';
-	csif_map_free_fn(ret);
+	ch_map_free_fn(ret);
 	map_->used--;
 	return 1;
 }
 
-void csif_map_destroy(csif_map *map_) {
+void ch_map_destroy(ch_map *map_) {
 	unsigned char ** bucket = map_->bucket;
 	while (*(bucket)) {
-		csif_map_free_fn(*bucket++);
+		ch_map_free_fn(*bucket++);
 	}
-	csif_map_free_fn(map_->bucket);
-	csif_map_free_fn(map_);
+	ch_map_free_fn(map_->bucket);
+	ch_map_free_fn(map_);
 }
 
 //typedef struct {
@@ -134,45 +134,45 @@ void csif_map_destroy(csif_map *map_) {
 //} Object;
 //
 //int main(void) {
-//	csif_map *sarray  = csif_map_init(3, sizeof(Object));
+//	ch_map *sarray  = ch_map_init(3, sizeof(Object));
 //
 //	SKey p = "111111";
-//	Object *o = (Object*) csif_map_assign(sarray, p);
-//	o->name = "csif_str_array: Hello, how are you?";
+//	Object *o = (Object*) ch_map_assign(sarray, p);
+//	o->name = "ch_str_array: Hello, how are you?";
 //
 //	SKey p2 = "22";
-//	Object *o2 = (Object*) csif_map_assign(sarray, p2);
-//	o2->name = "csif_str_array: Hello, how are you 2?";
+//	Object *o2 = (Object*) ch_map_assign(sarray, p2);
+//	o2->name = "ch_str_array: Hello, how are you 2?";
 //
 //	SKey p3 = "123456789012";
 //	printf("%lu\n", strlen(p3));
-//	Object *o3 = (Object*) csif_map_assign(sarray, p3);
-//	o3->name = "csif_str_array: Hello, how are you 3?";
+//	Object *o3 = (Object*) ch_map_assign(sarray, p3);
+//	o3->name = "ch_str_array: Hello, how are you 3?";
 //
-//	Object *object = (Object*) csif_map_get(sarray, "22");
-//
-//	if (object)
-//		printf("%s\n", object->name);
-//
-//
-//	object = (Object*) csif_map_get(sarray, "111111");
-//
-//	if (object)
-//		printf("%s\n", object->name);
-//
-//	object = (Object*) csif_map_get(sarray, "123456789012");
+//	Object *object = (Object*) ch_map_get(sarray, "22");
 //
 //	if (object)
 //		printf("%s\n", object->name);
 //
 //
-//	if(csif_map_remove(sarray, "111111")) {
+//	object = (Object*) ch_map_get(sarray, "111111");
+//
+//	if (object)
+//		printf("%s\n", object->name);
+//
+//	object = (Object*) ch_map_get(sarray, "123456789012");
+//
+//	if (object)
+//		printf("%s\n", object->name);
+//
+//
+//	if(ch_map_remove(sarray, "111111")) {
 //		printf("%s\n", "Successfully removed");
 //	}
 //
 //
 //
-//	csif_map_destroy(sarray);
+//	ch_map_destroy(sarray);
 //
 //	return 0;
 //}
