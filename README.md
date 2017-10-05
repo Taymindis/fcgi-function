@@ -1,5 +1,5 @@
-# ngx-c-handler
-ngx-c-handler is a C/CPP service interface, It is a Service Interface build on top of FastCGI and Nginx which provided function handler support, it also provided useful collection tools to enhance the facilities. 
+# fcgi-function
+fcgi Function is a C/CPP language based interface, which build on top of FastCGI with built in functional handler support, it also provided useful collection tools to enhance the facilities. It can be integrated with Nginx Fastcgi module
 
 ## How it works
 ![Image of simpleflow](/images/simple-flow.png)
