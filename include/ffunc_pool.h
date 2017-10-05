@@ -15,15 +15,15 @@ extern "C" {
 typedef struct pool {
 	void *next,
 	     *end;
-} ch_pool;
+} ffunc_pool;
 
 
-ch_pool* create_pool( size_t size );
-void destroy_pool( ch_pool *p );
-void * falloc( ch_pool **p, size_t size );
-size_t mem_left( ch_pool *p );
-size_t blk_size( ch_pool *p );
-ch_pool* re_create_pool( ch_pool *curr_p);
+ffunc_pool* create_pool( size_t size );
+void destroy_pool( ffunc_pool *p );
+void * falloc( ffunc_pool **p, size_t size );
+size_t mem_left( ffunc_pool *p );
+size_t blk_size( ffunc_pool *p );
+ffunc_pool* re_create_pool( ffunc_pool *curr_p);
 
 #ifdef __cplusplus
 }

@@ -3,23 +3,23 @@
 #include <errno.h>
 #include <string.h>
 #include <stdint.h>
-#include "ch_buf.h"
+#include "ffunc_buf.h"
 
 #include <unistd.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 
-static CH_BUF_MALLOC_FN ch_buf_malloc_fn = malloc;
-static CH_BUF_FREE_FN ch_buf_free_fn = free;
+static CH_BUF_MALLOC_FN ffunc_buf_malloc_fn = malloc;
+static CH_BUF_FREE_FN ffunc_buf_free_fn = free;
 
-void ch_buf_set_alloc_fn(CH_BUF_MALLOC_FN malloc_fun, CH_BUF_FREE_FN free_fun) {
-	ch_buf_malloc_fn = malloc_fun;
-	ch_buf_free_fn = free_fun;
+void ffunc_buf_set_alloc_fn(CH_BUF_MALLOC_FN malloc_fun, CH_BUF_FREE_FN free_fun) {
+	ffunc_buf_malloc_fn = malloc_fun;
+	ffunc_buf_free_fn = free_fun;
 }
 
-ch_buf *
-ch_buf_create(void) {
-	ch_buf *buff_ = ch_buf_malloc_fn(sizeof(ch_buf));
+ffunc_buf *
+ffunc_buf_create(void) {
+	ffunc_buf *buff_ = ffunc_buf_malloc_fn(sizeof(ffunc_buf));
 
 	if (buff_ == NULL) {
 		return NULL;
@@ -29,24 +29,24 @@ ch_buf_create(void) {
 	return buff_;
 }
 
-ch_buf *
-ch_buf_init(const char *s) {
-	ch_buf *buff_ = ch_buf_create();
-	ch_buf_add_(buff_, s);
+ffunc_buf *
+ffunc_buf_init(const char *s) {
+	ffunc_buf *buff_ = ffunc_buf_create();
+	ffunc_buf_add_(buff_, s);
 	return buff_;
 }
 
 int
-ch_buf_add(ch_buf *buff_, void *buf, size_t new_size) {
+ffunc_buf_add(ffunc_buf *buff_, void *buf, size_t new_size) {
 	void *new_buf;
 	/*Swap*/
-	new_buf = ch_buf_malloc_fn(buff_->size + new_size + 1);
+	new_buf = ffunc_buf_malloc_fn(buff_->size + new_size + 1);
 	if (new_buf  == NULL) {
 		return 0;
 	}
 	if (buff_->data) {
 		memcpy(new_buf, buff_->data, buff_->size);
-		ch_buf_free_fn(buff_->data); //Not need to free as pool will free later.
+		ffunc_buf_free_fn(buff_->data); //Not need to free as pool will free later.
 	}
 	buff_->data = (unsigned char*)new_buf; //after freed, assigned new address of data
 	memcpy(buff_->data + buff_->size , buf, new_size);
@@ -57,12 +57,12 @@ ch_buf_add(ch_buf *buff_, void *buf, size_t new_size) {
 }
 
 int
-ch_buf_add_(ch_buf *buff_, const char *s) {
+ffunc_buf_add_(ffunc_buf *buff_, const char *s) {
 	void *new_buf;
 	size_t size = strlen(s);
 
 	/*Swap*/
-	new_buf = ch_buf_malloc_fn(buff_->size + size + 1);
+	new_buf = ffunc_buf_malloc_fn(buff_->size + size + 1);
 
 	if (new_buf  == NULL) {
 		return 0;
@@ -70,7 +70,7 @@ ch_buf_add_(ch_buf *buff_, const char *s) {
 
 	if (buff_->data) {
 		memcpy(new_buf, buff_->data, buff_->size);
-		ch_buf_free_fn(buff_->data);
+		ffunc_buf_free_fn(buff_->data);
 	}
 
 	buff_->data = new_buf;
@@ -84,19 +84,19 @@ ch_buf_add_(ch_buf *buff_, const char *s) {
 	return 1;
 }
 
-int ch_buf_delete(ch_buf *buff_) {
+int ffunc_buf_delete(ffunc_buf *buff_) {
 	// Can safely assume buff_ is NULL or fully built.
 	if (buff_ != NULL) {
-		ch_buf_free_fn(buff_->data);
+		ffunc_buf_free_fn(buff_->data);
 		buff_->data = NULL;
 		buff_->size = 0;
-		ch_buf_free_fn(buff_);
+		ffunc_buf_free_fn(buff_);
 	}
 	return 1;
 }
 
-ch_buf* ch_buf_read_file(char* file_path) {
-	ch_buf *buff_ = ch_buf_create();
+ffunc_buf* ffunc_buf_read_file(char* file_path) {
+	ffunc_buf *buff_ = ffunc_buf_create();
 
 	FILE *f; long len; unsigned char *data;
 
@@ -107,14 +107,14 @@ ch_buf* ch_buf_read_file(char* file_path) {
 	data = (unsigned char*)malloc(len + 1);
 	fread(data, 1, len, f); data[len] = '\0'; fclose(f);
 
-	ch_buf_add(buff_, data, len);
-	ch_buf_free_fn(data);
+	ffunc_buf_add(buff_, data, len);
+	ffunc_buf_free_fn(data);
 	fclose(f);
 
 	return buff_;
 }
 
-int ch_buf_write_file(char* out_path, ch_buf* out_buff, int clear_buff) {
+int ffunc_buf_write_file(char* out_path, ffunc_buf* out_buff, int clear_buff) {
 	FILE* writeFile;
 
 	if ((writeFile = fopen(out_path, "w")) == NULL)
@@ -128,14 +128,14 @@ int ch_buf_write_file(char* out_path, ch_buf* out_buff, int clear_buff) {
 	fclose(writeFile);
 
 	if (clear_buff) {
-		ch_buf_delete(out_buff);
+		ffunc_buf_delete(out_buff);
 	}
 
 	return 1;
 }
 
 
-int ch_buf_append_file(char* out_path, ch_buf* out_buff, int clear_buff) {
+int ffunc_buf_append_file(char* out_path, ffunc_buf* out_buff, int clear_buff) {
 	FILE* writeFile;
 
 	if ((writeFile = fopen(out_path, "a")) == NULL)
@@ -149,7 +149,7 @@ int ch_buf_append_file(char* out_path, ch_buf* out_buff, int clear_buff) {
 	fclose(writeFile);
 
 	if (clear_buff) {
-		ch_buf_delete(out_buff);
+		ffunc_buf_delete(out_buff);
 	}
 	return 1;
 }

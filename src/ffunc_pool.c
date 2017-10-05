@@ -1,43 +1,43 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "ch_pool.h"
+#include "ffunc_pool.h"
 
 /***Author: cloudleware , so far this is only applicable per thread, not for multithread ***/
 
 
 void* mem_align(size_t size);
 
-ch_pool* create_pool( size_t size ) {
-    ch_pool * p = (ch_pool*)mem_align(size + sizeof(ch_pool));
-    p->next = (void*)&p[1]; //p + sizeof(ch_pool)
+ffunc_pool* create_pool( size_t size ) {
+    ffunc_pool * p = (ffunc_pool*)mem_align(size + sizeof(ffunc_pool));
+    p->next = (void*)&p[1]; //p + sizeof(ffunc_pool)
     p->end = (void*)((uintptr_t)p->next + size);
     return p;    // p->memblk = //mem_align( 16, DEFAULT_BLK_SZ);
 }
 
-void destroy_pool( ch_pool *p ) {
+void destroy_pool( ffunc_pool *p ) {
     if (p)
         free(p);
 }
 
-size_t mem_left( ch_pool *p ) {
+size_t mem_left( ffunc_pool *p ) {
     return (uintptr_t) p->end - (uintptr_t) p->next;
 }
 
-size_t blk_size( ch_pool *p ) {
+size_t blk_size( ffunc_pool *p ) {
     return (uintptr_t) p->end - (uintptr_t) (void*)&p[1];
 }
 
-ch_pool* re_create_pool( ch_pool *curr_p) {
-    ch_pool *newp = NULL;
+ffunc_pool* re_create_pool( ffunc_pool *curr_p) {
+    ffunc_pool *newp = NULL;
     if (curr_p) {
         // printf("%s\n", "Recreate Pool");
         size_t curr_used_size = blk_size(curr_p);
         size_t newSize = curr_used_size + curr_used_size;
-        newp = (ch_pool*)mem_align(sizeof(ch_pool) + newSize);
-        memcpy((void*)newp, (void*)curr_p, sizeof(ch_pool));
+        newp = (ffunc_pool*)mem_align(sizeof(ffunc_pool) + newSize);
+        memcpy((void*)newp, (void*)curr_p, sizeof(ffunc_pool));
         memcpy((void*)&newp[1], (void*)&curr_p[1], curr_used_size);
-        newp->next = (void*)&newp[1]; //p + sizeof(ch_pool)
+        newp->next = (void*)&newp[1]; //p + sizeof(ffunc_pool)
         newp->end =  (void*)((uintptr_t)newp->next + newSize);
         newp->next = (void*) ((uintptr_t) newp->next + curr_used_size);
         destroy_pool(curr_p);
@@ -46,10 +46,10 @@ ch_pool* re_create_pool( ch_pool *curr_p) {
 
 }
 
-void * falloc( ch_pool **p, size_t size ){
-    ch_pool *curr_p = *p;
+void * falloc( ffunc_pool **p, size_t size ){
+    ffunc_pool *curr_p = *p;
     if ( mem_left(*p) < size ) {
-        *p = curr_p = (ch_pool*)re_create_pool(*p);
+        *p = curr_p = (ffunc_pool*)re_create_pool(*p);
     }
     void *mem = (void*)curr_p->next;
     curr_p->next = (void*) ((uintptr_t)curr_p->next +  size); // alloc new memory
@@ -72,7 +72,7 @@ mem_align(size_t size) //alignment => 16
     printf("posix_memalign: %p:%uz @%uz \n", p, size, ALIGNMENT);
 #else
     // printf("%s\n", "Using Malloc");
-    p = malloc(size + sizeof(ch_pool));
+    p = malloc(size + sizeof(ffunc_pool));
 
 #endif
     return p;
@@ -82,14 +82,14 @@ mem_align(size_t size) //alignment => 16
 
 //  int main()
 //  {
-//      ch_pool *thisp = create_pool(DEFAULT_BLK_SZ);
+//      ffunc_pool *thisp = create_pool(DEFAULT_BLK_SZ);
 
 //      printf("thisp Address = %p\n",  thisp);
 //      printf("thisp->next Address = %p\n",  thisp->next);
 //      char* s = (char*)falloc(&thisp, DEFAULT_BLK_SZ);
 //      char* s2 = (char*)falloc(&thisp, DEFAULT_BLK_SZ);
 //      char* s3 = (char*)falloc(&thisp, DEFAULT_BLK_SZ);
-//      ch_pool *thatp = create_pool(DEFAULT_BLK_SZ);
+//      ffunc_pool *thatp = create_pool(DEFAULT_BLK_SZ);
 //      char* s4 = (char*)falloc(&thisp, DEFAULT_BLK_SZ);
 //      char* s5 = (char*)falloc(&thisp, DEFAULT_BLK_SZ);
 

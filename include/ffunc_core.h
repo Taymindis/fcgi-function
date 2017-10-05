@@ -1,5 +1,5 @@
-#ifndef __ch_h__
-#define __ch_h__
+#ifndef __ffunc_h__
+#define __ffunc_h__
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
@@ -8,7 +8,7 @@ extern "C" {
 #endif
 
 #ifdef FDYMEMDETECT
-#include <ngxch/fdy_mem_detect.h>
+#include <ffunc/fdy_mem_detect.h>
 #endif
 
 #include <stdio.h>
@@ -22,10 +22,10 @@ extern "C" {
 #include <setjmp.h>
 #include <sys/time.h>
 
-#include "ch_pool.h"
-#include "ch_hash.h"
-#include "ch_map.h"
-#include "ch_buf.h"
+#include "ffunc_pool.h"
+#include "ffunc_hash.h"
+#include "ffunc_map.h"
+#include "ffunc_buf.h"
 
 
 #include "binary_array.h"
@@ -44,7 +44,7 @@ extern "C" {
 
 
 typedef struct {
-	ch_pool *pool;
+	ffunc_pool *pool;
 
 	// unsigned long int _identifier;
 
@@ -56,47 +56,47 @@ typedef struct {
 	// char** query_params;
 	jmp_buf jump_err_buff;
 	sigset_t *curr_mask;
-} ch_session_t;
+} ffunc_session_t;
 
 int no_debug(FILE *__restrict __stream, const char *__restrict __format, ...);
-int (*ch_dbg)(FILE *__restrict __stream, const char *__restrict __format, ...);
+int (*ffunc_dbg)(FILE *__restrict __stream, const char *__restrict __format, ...);
 
 static const char AMPERSAND_DELIM = '&';
 static const char EQ_DELIM = '=';
 
-int ch_main (int argc, char *argv[], char* all_func[]);
-int init_socket(char* sock_port, int backlog, int workers, int forkable, int signalable, int debugmode, char* logfile, char* solib, char** ch_nmap_func);
+int ffunc_main (int argc, char *argv[], char* all_func[]);
+int init_socket(char* sock_port, int backlog, int workers, int forkable, int signalable, int debugmode, char* logfile, char* solib, char** ffunc_nmap_func);
 int file_existed(const char* fname);
 int setup_logger(char* out_file_path);
 void print_time(char* buff);
 
-#define ch_write_out(...) FCGX_FPrintF(request->out, __VA_ARGS__)
+#define ffunc_write_out(...) FCGX_FPrintF(request->out, __VA_ARGS__)
 
-// #define get_json(ch_session_t) ch_session_t->json
-#define ch_alloc(ch_session_t, sz) falloc(&ch_session_t->pool, sz)
-#define ch_pool_sz(ch_session_t) blk_size(ch_session_t->pool)
+// #define get_json(ffunc_session_t) ffunc_session_t->json
+#define ffunc_alloc(ffunc_session_t, sz) falloc(&ffunc_session_t->pool, sz)
+#define ffunc_pool_sz(ffunc_session_t) blk_size(ffunc_session_t->pool)
 //There is not free as csession will free itself
 
 #define STRINGIFY(x) #x
 #define STR(x) STRINGIFY(x)
 
 size_t slen(const char* str);
-int ch_isspace(const char* s);
+int ffunc_isspace(const char* s);
 
 char *duplistr(const char *str);
 int is_empty(char *s);
 
-ch_session_t *ch_get_session(void);
+ffunc_session_t *ffunc_get_session(void);
 
 // char *getBodyContent(FCGX_Request *request);
-long ch_readContent(FCGX_Request *request, char** content);
-void* ch_getParam(const char *key, char* query_str);
+long ffunc_readContent(FCGX_Request *request, char** content);
+void* ffunc_getParam(const char *key, char* query_str);
 
 
-void ch_write_http_status(FCGX_Request *request, uint16_t code);
-void ch_write_default_header(FCGX_Request *request);
-void ch_write_jsonp_header(FCGX_Request *request);
-void ch_write_json_header(FCGX_Request *request);
+void ffunc_write_http_status(FCGX_Request *request, uint16_t code);
+void ffunc_write_default_header(FCGX_Request *request);
+void ffunc_write_jsonp_header(FCGX_Request *request);
+void ffunc_write_json_header(FCGX_Request *request);
 
 
 
@@ -109,7 +109,7 @@ void ch_write_json_header(FCGX_Request *request);
 #ifdef CH_MACOSX
 #define fdebug(M, ...) { char buff__[20]; print_time(buff__); fprintf(FLOGGER_, "MACOSX -- DEBUG - %s - %s:%d: " M "\n", buff__, __FILE__, __LINE__, ##__VA_ARGS__); }
 #else
-#define fdebug(M, ...) { char buff__[20]; print_time(buff__); (*ch_dbg)(FLOGGER_, "DEBUG - %s - %s:%d: " M "\n", buff__, __FILE__, __LINE__, ##__VA_ARGS__); }
+#define fdebug(M, ...) { char buff__[20]; print_time(buff__); (*ffunc_dbg)(FLOGGER_, "DEBUG - %s - %s:%d: " M "\n", buff__, __FILE__, __LINE__, ##__VA_ARGS__); }
 #endif
 #define clean_errno() (errno == 0 ? "None" : strerror(errno))
 
