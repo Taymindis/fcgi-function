@@ -43,13 +43,17 @@ Install the project...
 
 -- Installing: /usr/local/include/ffunc/ffunc_hash.h
 
--- Installing: /usr/local/include/ffunc/ffunc_LFHashTable.h
-
 -- Installing: /usr/local/include/ffunc/ffunc_map.h
 
 -- Installing: /usr/local/include/ffunc/ffunc_buf.h
 
 -- Installing: /usr/local/include/ffunc/ffunc_pool.h
+
+-- Installing: /usr/local/include/ffunc/binary_array.h
+
+-- Installing: /usr/local/include/ffunc/atomic_hashtable.h
+
+-- Installing: /usr/local/include/ffunc/atomic_hashtable_n.h
 
 
 ### 4. build a simple program by execute 
@@ -158,21 +162,24 @@ Available options:
 ### 2. type "sudo make uninstall" 
 Then result
 
--- Uninstalling /usr/local/lib/libffunc.dylib
+-- Uninstalling: /usr/local/lib/libffunc.dylib
 
--- Uninstalling /usr/local/lib/libffunc.a
+-- Uninstalling: /usr/local/lib/libffunc.a
 
--- Uninstalling /usr/local/include/ffunc/ffunc_core.h
+-- Uninstalling: /usr/local/include/ffunc/ffunc_core.h
 
--- Uninstalling /usr/local/include/ffunc/ffunc_json.h
+-- Uninstalling: /usr/local/include/ffunc/ffunc_json.h
 
--- Uninstalling /usr/local/include/ffunc/ffunc_hash.h
+-- Uninstalling: /usr/local/include/ffunc/ffunc_hash.h
 
--- Uninstalling /usr/local/include/ffunc/ffunc_LFHashTable.h
+-- Uninstalling: /usr/local/include/ffunc/ffunc_map.h
 
--- Uninstalling /usr/local/include/ffunc/ffunc_map.h
+-- Uninstalling: /usr/local/include/ffunc/ffunc_buf.h
 
--- Uninstalling /usr/local/include/ffunc/ffunc_buf.h
+-- Uninstalling: /usr/local/include/ffunc/ffunc_pool.h
 
--- Uninstalling /usr/local/include/ffunc/ffunc_pool.h
+-- Uninstalling: /usr/local/include/ffunc/binary_array.h
 
+-- Uninstalling: /usr/local/include/ffunc/atomic_hashtable.h
+
+-- Uninstalling: /usr/local/include/ffunc/atomic_hashtable_n.h
