@@ -49,7 +49,7 @@ int strpos(const char *haystack, const char *needle);
 void* multi_thread_accept(void* sock_ptr);
 // void *thread_admin(void* sock);
 // void *add_on_workers(void* sock);
-int hook_socket(char* sock_port, int backlog, int workers, char** ffunc_nmap_func, void (*init_func)(void) );
+int hook_socket(char* sock_port, int backlog, int workers, char** ffunc_nmap_func, void (*app_init_handler)(void) );
 sigset_t* handle_request(FCGX_Request *request);
 // int init_error_signal(f_singal_t *ferr_signals);
 void* ffunc_init_signal(void *v);
@@ -342,7 +342,7 @@ ffunc_session_t *ffunc_get_session(void) {
     return (ffunc_session_t *)__atomic_hash_n_get(thread_hash, pthread_self());
 }
 
-int init_socket(char* sock_port, int backlog, int workers, int forkable, int signalable, int debugmode, char* logfile, char* solib, char** ffunc_nmap_func, void (*init_func)(void), void (*shutdown_func)(void)) {
+int init_socket(char* sock_port, int backlog, int workers, int forkable, int signalable, int debugmode, char* logfile, char* solib, char** ffunc_nmap_func, void (*app_init_handler)(void), void (*shutdown_func)(void)) {
     // For Shutdown Handler
     ffunc_shutdown_handler = shutdown_func;
 
@@ -380,7 +380,7 @@ int init_socket(char* sock_port, int backlog, int workers, int forkable, int sig
 
                 pthread_detach(pth);
 
-                return hook_socket(sock_port, backlog, workers, ffunc_nmap_func, init_func);
+                return hook_socket(sock_port, backlog, workers, ffunc_nmap_func, app_init_handler);
             } else {}//Parent process
         } else {// fork failed
             flog_info("%s\n", "Fork failed..");
@@ -391,12 +391,12 @@ int init_socket(char* sock_port, int backlog, int workers, int forkable, int sig
         pthread_create(&pth, NULL, ffunc_init_signal, has_error_handler);
         pthread_detach(pth);
 
-        return hook_socket(sock_port, backlog, workers, ffunc_nmap_func, init_func);
+        return hook_socket(sock_port, backlog, workers, ffunc_nmap_func, app_init_handler);
     }
     return 0;
 }
 
-int hook_socket(char* sock_port, int backlog, int workers, char** ffunc_nmap_func, void (*init_func)(void)) {
+int hook_socket(char* sock_port, int backlog, int workers, char** ffunc_nmap_func, void (*app_init_handler)(void)) {
 
     FCGX_Init();
     if (!ffunc_init(ffunc_nmap_func)) {
@@ -445,7 +445,8 @@ int hook_socket(char* sock_port, int backlog, int workers, char** ffunc_nmap_fun
             pthread_detach(pth_workers[i]);
         }
 
-        init_func();
+        if(app_init_handler)
+            app_init_handler();
 
 BACKTO_WORKERS:
         while (remain_workers == total_workers)

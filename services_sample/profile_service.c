@@ -85,7 +85,7 @@ int postProfile(FCGX_Request *request, ffunc_session_t * csession) {
 
 int main (int argc, char *argv[]) {
 	char* ffunc_nmap_func[] = {"getProfile", "postError", "postProfile", NULL};
-	ffunc_main (argc, argv, ffunc_nmap_func);
+	ffunc_main (argc, argv, ffunc_nmap_func, NULL, NULL);
 }
 
 

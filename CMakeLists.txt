@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 2.8)
-cmake_policy(VERSION 2.8)
+cmake_policy(SET CMP0048 NEW)
 
 if(UNIX AND NOT APPLE)
     set(FCGIFUNC_LINUX TRUE)
@@ -9,7 +9,9 @@ else(UNIX AND NOT APPLE)
 endif (UNIX AND NOT APPLE)
 
 set(PROJ_FCGIFUNC ffunc)
-project(ffunc C)
+project(ffunc 
+	VERSION 2.1
+	LANGUAGES C)
 
 # Some tweak parameters
 SET(PWD ${CMAKE_CURRENT_SOURCE_DIR})
