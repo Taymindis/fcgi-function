@@ -64,8 +64,8 @@ int (*ffunc_dbg)(FILE *__restrict __stream, const char *__restrict __format, ...
 static const char AMPERSAND_DELIM = '&';
 static const char EQ_DELIM = '=';
 
-int ffunc_main (int argc, char *argv[], char* all_func[]);
-int init_socket(char* sock_port, int backlog, int workers, int forkable, int signalable, int debugmode, char* logfile, char* solib, char** ffunc_nmap_func);
+int ffunc_main (int argc, char *argv[], char* all_func[], void (*init_func)(void), void (*shutdown_func)(void));
+int init_socket(char* sock_port, int backlog, int workers, int forkable, int signalable, int debugmode, char* logfile, char* solib, char** ffunc_nmap_func, void (*init_func)(void), void (*shutdown_func)(void));
 int file_existed(const char* fname);
 int setup_logger(char* out_file_path);
 void print_time(char* buff);

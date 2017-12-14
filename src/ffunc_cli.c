@@ -54,7 +54,7 @@ char *trim_space(char *str) {
 }
 
 int
-ffunc_main (int argc, char *argv[], char* all_funs[]) {
+ffunc_main (int argc, char *argv[], char* all_funs[], void (*init_func)(void), void (*shutdown_func)(void)) {
 
   char *sock_port,
        *appname = NULL,
@@ -116,12 +116,12 @@ ffunc_main (int argc, char *argv[], char* all_funs[]) {
     if (appname[len - 3] == '.' && appname[len - 2] == 's' && appname[len - 1] == 'o' ) {
       // char *install_lib[4] = {"mv", appname, "/usr/local/ffunc/", NULL};
       // execute(install_lib);
-      init_socket(sock_port, backlog, workers, forkable, signalable, debugmode, logfile, concat("./", appname), all_funs);
+      init_socket(sock_port, backlog, workers, forkable, signalable, debugmode, logfile, concat("./", appname), all_funs, init_func, shutdown_func);
     } else {
       printf("%s\n", "only .so file if you need dynamic link your application, else please leave it blank");
     }
   } else {
-    init_socket(sock_port, backlog, workers, forkable, signalable, debugmode, logfile, NULL, all_funs);
+    init_socket(sock_port, backlog, workers, forkable, signalable, debugmode, logfile, NULL, all_funs, init_func, shutdown_func);
   }
 
   return 0;

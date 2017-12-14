@@ -38,6 +38,8 @@ int no_debug(FILE *__restrict __stream, const char *__restrict __format, ...) {r
 
 static __atomic_hash_n *thread_hash;
 static int total_workers, remain_workers;
+static void (*ffunc_shutdown_handler)(void);
+
 int ffunc_init(char** ffunc_nmap_func);
 
 void* Malloc_Function(size_t sz);
@@ -47,7 +49,7 @@ int strpos(const char *haystack, const char *needle);
 void* multi_thread_accept(void* sock_ptr);
 // void *thread_admin(void* sock);
 // void *add_on_workers(void* sock);
-int hook_socket(char* sock_port, int backlog, int workers, char** ffunc_nmap_func);
+int hook_socket(char* sock_port, int backlog, int workers, char** ffunc_nmap_func, void (*init_func)(void) );
 sigset_t* handle_request(FCGX_Request *request);
 // int init_error_signal(f_singal_t *ferr_signals);
 void* ffunc_init_signal(void *v);
@@ -340,7 +342,9 @@ ffunc_session_t *ffunc_get_session(void) {
     return (ffunc_session_t *)__atomic_hash_n_get(thread_hash, pthread_self());
 }
 
-int init_socket(char* sock_port, int backlog, int workers, int forkable, int signalable, int debugmode, char* logfile, char* solib, char** ffunc_nmap_func) {
+int init_socket(char* sock_port, int backlog, int workers, int forkable, int signalable, int debugmode, char* logfile, char* solib, char** ffunc_nmap_func, void (*init_func)(void), void (*shutdown_func)(void)) {
+    // For Shutdown Handler
+    ffunc_shutdown_handler = shutdown_func;
 
     if (!ffunc_nmap_func[0]) {
         flog_info("%s\n", "ffunc_nmap_func has no defined...");
@@ -376,7 +380,7 @@ int init_socket(char* sock_port, int backlog, int workers, int forkable, int sig
 
                 pthread_detach(pth);
 
-                return hook_socket(sock_port, backlog, workers, ffunc_nmap_func);
+                return hook_socket(sock_port, backlog, workers, ffunc_nmap_func, init_func);
             } else {}//Parent process
         } else {// fork failed
             flog_info("%s\n", "Fork failed..");
@@ -387,12 +391,12 @@ int init_socket(char* sock_port, int backlog, int workers, int forkable, int sig
         pthread_create(&pth, NULL, ffunc_init_signal, has_error_handler);
         pthread_detach(pth);
 
-        return hook_socket(sock_port, backlog, workers, ffunc_nmap_func);
+        return hook_socket(sock_port, backlog, workers, ffunc_nmap_func, init_func);
     }
     return 0;
 }
 
-int hook_socket(char* sock_port, int backlog, int workers, char** ffunc_nmap_func) {
+int hook_socket(char* sock_port, int backlog, int workers, char** ffunc_nmap_func, void (*init_func)(void)) {
 
     FCGX_Init();
     if (!ffunc_init(ffunc_nmap_func)) {
@@ -440,6 +444,8 @@ int hook_socket(char* sock_port, int backlog, int workers, char** ffunc_nmap_fun
             __atomic_fetch_add(&remain_workers, 1, __ATOMIC_ACQUIRE);
             pthread_detach(pth_workers[i]);
         }
+
+        init_func();
 
 BACKTO_WORKERS:
         while (remain_workers == total_workers)
@@ -534,9 +540,14 @@ void _backtrace(int fd, int signo,  int stack_size) {
 
 void shut_down_handler(int signo) {
     if (isUpAndRunning) {
-        flog_info("%s\n", "Shutting Down...");
-
         isUpAndRunning = 0;
+        
+        flog_info("%s\n", "Shutting Down...");
+        
+        if (ffunc_shutdown_handler) {
+            ffunc_shutdown_handler();
+        }
+
 
         FCGX_ShutdownPending();
 
