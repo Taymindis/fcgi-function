@@ -14,6 +14,10 @@ cmake and make
 
 ### Supported OS: LINUX, MAC OSX
 
+## Clone the Repository Recursively
+git clone --recursive https://github.com/Taymindis/fcgi-function.git
+
+
 ## Step of installation
 ### 1. Go to root directory
 ### 2. type 
