@@ -53,7 +53,7 @@ Install the project...
 
 -- Installing: /usr/local/include/ffunc/ffunc_pool.h
 
--- Installing: /usr/local/include/ffunc/binary_array.h
+-- Installing: /usr/local/include/ffunc/indexed_array.h
 
 -- Installing: /usr/local/include/ffunc/atomic_hashtable.h
 
@@ -182,7 +182,7 @@ Then result
 
 -- Uninstalling: /usr/local/include/ffunc/ffunc_pool.h
 
--- Uninstalling: /usr/local/include/ffunc/binary_array.h
+-- Uninstalling: /usr/local/include/ffunc/indexed_array.h
 
 -- Uninstalling: /usr/local/include/ffunc/atomic_hashtable.h
 

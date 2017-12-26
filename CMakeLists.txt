@@ -34,7 +34,7 @@ message(STATUS "Current Binary DIRECTORY located at ${CMAKE_CURRENT_BINARY_DIR}"
 
 SET(LIBPATH /usr/lib /usr/local/lib)
 
-include_directories(binary_array atomic_hashtable include /usr/local/include)
+include_directories(indexed_array atomic_hashtable include /usr/local/include)
 
 add_definitions(-D_XOPEN_SOURCE)
 
@@ -88,10 +88,10 @@ SET (INCLUDES include)
 SET (SRCDIR src)
 
 SET (ATOMIC_HASH_DIR atomic_hashtable)
-SET (BIN_ARRAY_DIR binary_array)
+SET (BIN_ARRAY_DIR indexed_array)
 
-SET (SRCS ${SRCDIR}/ffunc_core.c ${SRCDIR}/ffunc_pool.c ${SRCDIR}/ffunc_hash.c ${SRCDIR}/ffunc_map.c ${BIN_ARRAY_DIR}/binary_array.c ${ATOMIC_HASH_DIR}/atomic_hashtable.c ${ATOMIC_HASH_DIR}/atomic_hashtable_n.c ${SRCDIR}/ffunc_buf.c ${SRCDIR}/ffunc_cli.c)
-SET (HDRS ${INCLUDES}/ffunc_core.h ${INCLUDES}/ffunc_pool.h ${INCLUDES}/ffunc_hash.h ${INCLUDES}/ffunc_map.h ${BIN_ARRAY_DIR}/binary_array.h ${ATOMIC_HASH_DIR}/atomic_hashtable.h ${ATOMIC_HASH_DIR}/atomic_hashtable_n.h ${INCLUDES}/ffunc_buf.h)
+SET (SRCS ${SRCDIR}/ffunc_core.c ${SRCDIR}/ffunc_pool.c ${SRCDIR}/ffunc_hash.c ${SRCDIR}/ffunc_map.c ${BIN_ARRAY_DIR}/indexed_array.c ${ATOMIC_HASH_DIR}/atomic_hashtable.c ${ATOMIC_HASH_DIR}/atomic_hashtable_n.c ${SRCDIR}/ffunc_buf.c ${SRCDIR}/ffunc_cli.c)
+SET (HDRS ${INCLUDES}/ffunc_core.h ${INCLUDES}/ffunc_pool.h ${INCLUDES}/ffunc_hash.h ${INCLUDES}/ffunc_map.h ${BIN_ARRAY_DIR}/indexed_array.h ${ATOMIC_HASH_DIR}/atomic_hashtable.h ${ATOMIC_HASH_DIR}/atomic_hashtable_n.h ${INCLUDES}/ffunc_buf.h)
 
 add_library(${PROJ_FCGIFUNC}.static STATIC ${HDRS} ${SRCS})
 set_target_properties(${PROJ_FCGIFUNC}.static PROPERTIES OUTPUT_NAME ${PROJ_FCGIFUNC})
@@ -133,7 +133,7 @@ install(FILES ${INCLUDES}/ffunc_hash.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${INCLUDES}/ffunc_map.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${INCLUDES}/ffunc_buf.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${INCLUDES}/ffunc_pool.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install(FILES ${BIN_ARRAY_DIR}/binary_array.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(FILES ${BIN_ARRAY_DIR}/indexed_array.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${ATOMIC_HASH_DIR}/atomic_hashtable.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${ATOMIC_HASH_DIR}/atomic_hashtable_n.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 

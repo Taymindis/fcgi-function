@@ -28,7 +28,7 @@ extern "C" {
 #include "ffunc_buf.h"
 
 
-#include "binary_array.h"
+#include "indexed_array.h"
 #include "atomic_hashtable.h"
 #include "atomic_hashtable_n.h"	
 
