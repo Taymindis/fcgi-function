@@ -1,6 +1,6 @@
 [submodule "atomic_hashtable"]
 	path = atomic_hashtable
 	url = https://github.com/Taymindis/atomic_hashtable.git
-[submodule "binary_array"]
-	path = binary_array
+[submodule "indexed_array"]
+	path = indexed_array
 url=https://github.com/Taymindis/indexed_array
