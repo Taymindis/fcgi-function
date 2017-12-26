@@ -3,4 +3,4 @@
 	url = https://github.com/Taymindis/atomic_hashtable.git
 [submodule "indexed_array"]
 	path = indexed_array
-url=https://github.com/Taymindis/indexed_array
+	url = https://github.com/Taymindis/indexed_array.git
