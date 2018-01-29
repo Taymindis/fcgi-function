@@ -1,3 +1,11 @@
+# Alternative Choice (Recommended):
+
+### Introducing a nginx module [nginx-c-function](https://github.com/Taymindis/nginx-c-function) which enable to link your .so(c/c++) application via nginx config and call the function in directive context, It is more faster and stable than fcgi-function as it is built under nginx module.
+
+
+
+
+
 # fcgi-function
 fcgi Function is a C/CPP language based interface, which build on top of FastCGI with built in functional handler support, it also provided useful collection tools to enhance the facilities. It can be integrated with Nginx Fastcgi module
 
