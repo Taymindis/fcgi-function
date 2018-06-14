@@ -1,3 +1,14 @@
+# Recommendation
+Due to logging built in logging mechanism will slow down the process speed, suggested to use third party logging mechanism for your application layer such as:-
+
+[C++ spdlog](https://github.com/gabime/spdlog)
+
+[C++ g3log](https://github.com/KjellKod/g3log)
+
+[C mini-async-log](https://github.com/RafaGago/mini-async-log)
+
+
+
 # fcgi-function
 fcgi Function is a C/CPP language based interface, which build on top of FastCGI with built in functional handler support, it also provided useful collection tools to enhance the facilities. It can be integrated with Nginx Fastcgi module
 
