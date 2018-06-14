@@ -1,5 +1,5 @@
 # Recommendation
-Due to logging built in logging mechanism will slow down the process speed, suggested to use third party logging mechanism for your application layer such as:-
+Due to built in logging mechanism will slow down the process speed, suggested to use third party logging mechanism for your application layer such as:-
 
 [C++ spdlog](https://github.com/gabime/spdlog)
 
