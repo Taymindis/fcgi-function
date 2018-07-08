@@ -61,8 +61,6 @@ Install the project...
 
 -- Installing: /usr/local/include/ffunc/ffunc_pool.h
 
--- Installing: /usr/local/include/ffunc/indexed_array.h
-
 -- Installing: /usr/local/include/ffunc/atomic_hashtable.h
 
 -- Installing: /usr/local/include/ffunc/atomic_hashtable_n.h
@@ -73,7 +71,7 @@ Install the project...
 > gcc ../services_sample/profile_service.c -lffunc -lfcgi -rdynamic -o simple_service
 
 #### For C++
-> g++ -std=c++11 ../services_sample/cpp_profile_service.cpp -lffunc -lfcgi -rdynamic -o simple_service
+> g++ -std=c++11 ../services_sample/cpp_profile_service.cpp -lffunc -lfcgi -latomic -rdynamic -o simple_service
 
 ### 5. when you type 
 
@@ -82,47 +80,28 @@ Install the project...
 it will result:-
 Available options:
 
-	-a	the ip address which binding to
-	
-	-p	port number to specified, not for -s
-	
-	-s	unix domain socket path to generate, not for -p
-	
-	-q	number of socket backlog
-	
-	-w	number of worker process
-	
-	-l	log file path
-	
-	-e	signal handling
-	
-	-f	Fork Daemon process
-	
-	-d	Run on debug Mode
-	
-	-o	Dynamic Link shared object file
-	
-	-h	display usage
-	
-	-v	display version
-	
+```bash
+
+Service starting
+sock_port=2005, backlog=16
+total function = 3
+64 threads in process
+Socket on hook 2005
+
+```
 
 ### 6. simple start a service by execute 
 
-> ./simple_service -p2005 -q200 -w200 -d -e
+> ./simple_service
 
 ### 6.1 Running on background by using nohup(preferable) or forking option
-> nohup bash -c "./simple_service -p2005 -w100 -q100 -d -e -l/home/user1/apps.log" >/dev/null 2>&1 &
-
-> ./simple_service -p2005 -w100 -q100 -d -e -l/home/user1/apps.log -f
+> nohup bash -c "./simple_service" >/dev/null 2>&1 &
 
 ### 6.2 Running on valgrind (performance will impact)
-> valgrind --leak-check=full --show-leak-kinds=all ./simple_service -p2005 -w200 -q200 -d -e
-
-> valgrind --leak-check=full --show-leak-kinds=all ./simple_service -p2005 -w200 -q200 -d -e -l/home/user1/apps.log
+> valgrind --leak-check=full --show-leak-kinds=all ./simple_service
 
 #### 6.2.1 valgrind on background (recommended for UAT purpose)
-> nohup bash -c "valgrind --leak-check=full --log-file=/home/user1/valgrind_check.log ./simple_service -p2005 -w200 -q200 -d -e -l/home/user1/apps.log" >/dev/null 2>&1 &
+> nohup bash -c "valgrind --leak-check=full --log-file=/home/user1/valgrind_check.log ./simple_service" >/dev/null 2>&1 &
 
 ### 7. Edit the nginx.conf in your nginx config folder by append in your server block:-
 

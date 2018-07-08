@@ -34,7 +34,7 @@ message(STATUS "Current Binary DIRECTORY located at ${CMAKE_CURRENT_BINARY_DIR}"
 
 SET(LIBPATH /usr/lib /usr/local/lib)
 
-include_directories(indexed_array atomic_hashtable include /usr/local/include)
+include_directories(atomic_hashtable include /usr/local/include)
 
 add_definitions(-D_XOPEN_SOURCE)
 
@@ -53,9 +53,7 @@ else(FCGI_LIB)
 endif(FCGI_LIB)
 
 find_library(THREAD_LIB NAMES pthread PATHS ${LIBPATH})
-if(THREAD_LIB)	
-    add_definitions(-DTHREAD=true)
-    add_definitions(-DSYNC=true)
+if(THREAD_LIB)
 else(THREAD_LIB)
 	message( FATAL_ERROR "pthread not found. Please install pthread")
 endif(THREAD_LIB)
@@ -67,7 +65,7 @@ SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
 
 # Not need to export dynamic symbol out, -rdyanmic only for user application
 # SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "-rdynamic") # LDFLAGS=
-#  gcc -fPIC -pie -o libffunc.so src/ffunc_core.c src/ffunc_pool.c src/ffunc_json.c src/ffunc_cli.c -Iinclude -Wl,-E -Wl,--whole-archive -lfcgi -ldl -Wl,--no-whole-archive
+#  gcc -fPIC -pie -o libffunc.so src/ffunc_core.c src/ffunc_pool.c -Iinclude -Wl,-E -Wl,--whole-archive -lfcgi -latomic -ldl -Wl,--no-whole-archive
 
 if(UNIX AND NOT APPLE)
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pie -Wl,-E")
@@ -88,10 +86,9 @@ SET (INCLUDES include)
 SET (SRCDIR src)
 
 SET (ATOMIC_HASH_DIR atomic_hashtable)
-SET (BIN_ARRAY_DIR indexed_array)
 
-SET (SRCS ${SRCDIR}/ffunc_core.c ${SRCDIR}/ffunc_pool.c ${SRCDIR}/ffunc_hash.c ${SRCDIR}/ffunc_map.c ${BIN_ARRAY_DIR}/indexed_array.c ${ATOMIC_HASH_DIR}/atomic_hashtable.c ${ATOMIC_HASH_DIR}/atomic_hashtable_n.c ${SRCDIR}/ffunc_buf.c ${SRCDIR}/ffunc_cli.c)
-SET (HDRS ${INCLUDES}/ffunc_core.h ${INCLUDES}/ffunc_pool.h ${INCLUDES}/ffunc_hash.h ${INCLUDES}/ffunc_map.h ${BIN_ARRAY_DIR}/indexed_array.h ${ATOMIC_HASH_DIR}/atomic_hashtable.h ${ATOMIC_HASH_DIR}/atomic_hashtable_n.h ${INCLUDES}/ffunc_buf.h)
+SET (SRCS ${SRCDIR}/ffunc_core.c ${SRCDIR}/ffunc_pool.c ${SRCDIR}/ffunc_hash.c ${SRCDIR}/ffunc_map.c ${ATOMIC_HASH_DIR}/atomic_hashtable.c ${ATOMIC_HASH_DIR}/atomic_hashtable_n.c ${SRCDIR}/ffunc_buf.c)
+SET (HDRS ${INCLUDES}/ffunc_core.h ${INCLUDES}/ffunc_pool.h ${INCLUDES}/ffunc_hash.h ${INCLUDES}/ffunc_map.h ${ATOMIC_HASH_DIR}/atomic_hashtable.h ${ATOMIC_HASH_DIR}/atomic_hashtable_n.h ${INCLUDES}/ffunc_buf.h)
 
 add_library(${PROJ_FCGIFUNC}.static STATIC ${HDRS} ${SRCS})
 set_target_properties(${PROJ_FCGIFUNC}.static PROPERTIES OUTPUT_NAME ${PROJ_FCGIFUNC})
@@ -100,21 +97,19 @@ add_library(${PROJ_FCGIFUNC} SHARED ${HDRS} ${SRCS})
 
 link_directories(/usr/local/lib /usr/lib)
 
-# add_executable(ffunc ${SRCDIR}/ffunc_cli.c)
-
 # target_link_libraries(ffunc ${PROJ_FCGIFUNC})
 # target_link_libraries(ffunc fcgi dl)
 
 if(UNIX AND NOT APPLE)
 # target_link_libraries(${PROJ_FCGIFUNC} ${LIB_DL}) #static link to fcgi
-target_link_libraries(${PROJ_FCGIFUNC} fcgi dl pthread)  #dynamic link to -ldl
+target_link_libraries(${PROJ_FCGIFUNC} fcgi dl pthread atomic)  #dynamic link to -ldl
 # target_link_libraries(${PROJ_FCGIFUNC}.static ${LIB_DL}) #static link 
-target_link_libraries(${PROJ_FCGIFUNC}.static fcgi dl pthread) #dynamic link to -ldl
+target_link_libraries(${PROJ_FCGIFUNC}.static fcgi dl pthread atomic) #dynamic link to -ldl
 else(UNIX AND NOT APPLE)
 # target_link_libraries(${PROJ_FCGIFUNC} ${LIB_DL}) #static link to fcgi
-target_link_libraries(${PROJ_FCGIFUNC} fcgi dl pthread)  #dynamic link to -ldl
+target_link_libraries(${PROJ_FCGIFUNC} fcgi dl pthread atomic)  #dynamic link to -ldl
 # target_link_libraries(${PROJ_FCGIFUNC}.static ${LIB_DL}) #static link 
-target_link_libraries(${PROJ_FCGIFUNC}.static fcgi dl pthread) #dynamic link to -ldl
+target_link_libraries(${PROJ_FCGIFUNC}.static fcgi dl pthread atomic) #dynamic link to -ldl
 endif(UNIX AND NOT APPLE)
 
 
@@ -133,7 +128,6 @@ install(FILES ${INCLUDES}/ffunc_hash.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${INCLUDES}/ffunc_map.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${INCLUDES}/ffunc_buf.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${INCLUDES}/ffunc_pool.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install(FILES ${BIN_ARRAY_DIR}/indexed_array.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${ATOMIC_HASH_DIR}/atomic_hashtable.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${ATOMIC_HASH_DIR}/atomic_hashtable_n.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 

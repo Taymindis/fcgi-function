@@ -146,23 +146,23 @@ void ffunc_hash_destroy(ffunc_hash *hash_) {
 // 	Object *object = (Object*) ffunc_hash_get(hash, 22);
 //
 // 	if (object)
-// 		printf("%s\n", object->name);
+// 		ffunc_print("%s\n", object->name);
 //
 //
 // 	object = (Object*) ffunc_hash_get(hash, 111111);
 //
 // 	if (object)
-// 		printf("%s\n", object->name);
+// 		ffunc_print("%s\n", object->name);
 //
 // 	object = (Object*) ffunc_hash_get(hash, 6789012);
 //
 // 	if (object)
-// 		printf("%s\n", object->name);
+// 		ffunc_print("%s\n", object->name);
 //
 // 	if(ffunc_hash_remove(hash, 111111)) {
-// 		printf("%s\n", "Successfully removed");
+// 		ffunc_print("%s\n", "Successfully removed");
 // 	} else {
-// 		printf("%s\n", "Record Not Found");
+// 		ffunc_print("%s\n", "Record Not Found");
 // 	}
 //
 //

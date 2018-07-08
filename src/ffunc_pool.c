@@ -31,7 +31,7 @@ size_t blk_size( ffunc_pool *p ) {
 ffunc_pool* re_create_pool( ffunc_pool *curr_p) {
     ffunc_pool *newp = NULL;
     if (curr_p) {
-        // printf("%s\n", "Recreate Pool");
+        // ffunc_print("%s\n", "Recreate Pool");
         size_t curr_used_size = blk_size(curr_p);
         size_t newSize = curr_used_size + curr_used_size;
         newp = (ffunc_pool*)mem_align(sizeof(ffunc_pool) + newSize);
@@ -66,12 +66,12 @@ mem_align(size_t size) //alignment => 16
     int    err;
     err = posix_memalign(&p, ALIGNMENT, size);
     if (err) {
-        printf("posix_memalign(%uz, %uz) failed \n", ALIGNMENT, size);
+        ffunc_print("posix_memalign(%uz, %uz) failed \n", ALIGNMENT, size);
         p = NULL;
     }
-    printf("posix_memalign: %p:%uz @%uz \n", p, size, ALIGNMENT);
+    ffunc_print("posix_memalign: %p:%uz @%uz \n", p, size, ALIGNMENT);
 #else
-    // printf("%s\n", "Using Malloc");
+    // ffunc_print("%s\n", "Using Malloc");
     p = malloc(size + sizeof(ffunc_pool));
 
 #endif
@@ -84,8 +84,8 @@ mem_align(size_t size) //alignment => 16
 //  {
 //      ffunc_pool *thisp = create_pool(DEFAULT_BLK_SZ);
 
-//      printf("thisp Address = %p\n",  thisp);
-//      printf("thisp->next Address = %p\n",  thisp->next);
+//      ffunc_print("thisp Address = %p\n",  thisp);
+//      ffunc_print("thisp->next Address = %p\n",  thisp->next);
 //      char* s = (char*)falloc(&thisp, DEFAULT_BLK_SZ);
 //      char* s2 = (char*)falloc(&thisp, DEFAULT_BLK_SZ);
 //      char* s3 = (char*)falloc(&thisp, DEFAULT_BLK_SZ);
@@ -96,11 +96,11 @@ mem_align(size_t size) //alignment => 16
 //      char* s6 = (char*)falloc(&thatp, DEFAULT_BLK_SZ);
 //      char* s7 = (char*)falloc(&thatp, DEFAULT_BLK_SZ);
 
-//      printf("thisp Address = %p\n",  thisp);
-//      printf("thisp->next Address = %p\n",  thisp->next);
+//      ffunc_print("thisp Address = %p\n",  thisp);
+//      ffunc_print("thisp->next Address = %p\n",  thisp->next);
 
-// //     printf("thatp Address = %u\n",  thatp);
-// //     printf("thatp->next Address = %u\n",  thatp->next);
+// //     ffunc_print("thatp Address = %u\n",  thatp);
+// //     ffunc_print("thatp->next Address = %u\n",  thatp->next);
 
 
 //      destroy_pool(thatp);

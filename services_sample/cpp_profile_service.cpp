@@ -9,14 +9,12 @@ class MyType
 {
 public:
 	MyType() {
-		flog_info("%s\n", "ASD");
+		printf("%s\n", "ASD");
 	}
 	~MyType(){
-		flog_info("%s\n", "Value been freed");
+		printf("%s\n", "Value been freed");
 	}
 };
-
-
 
 
 #ifdef __cplusplus
@@ -24,7 +22,7 @@ extern "C" {
 #endif
 
 int getProfile(FCGX_Request *request, ffunc_session_t * csession) {
-	flog_info("%s\n", "you reach here with get Request");
+	printf("%s\n", "you reach here with get Request");
 	ffunc_write_out("Status: 200 OK\r\n");
 	ffunc_write_out("Content-Type: text/plain\r\n\r\n");/* \r\n\r\n  means go to response message*/
 	ffunc_write_out("%s\n", "you are here");
@@ -51,7 +49,7 @@ int getProfile(FCGX_Request *request, ffunc_session_t * csession) {
 }
 
 int postError(FCGX_Request *request, ffunc_session_t * csession) {
-	flog_info("%s\n", "you reach here with post Error test");
+	printf("%s\n", "you reach here with post Error test");
 	ffunc_write_out("Status: 500 Internal Server Error\r\n");
 	ffunc_write_out("Content-Type: text/plain\r\n\r\n");
 	ffunc_write_out("%s\n", "you hitting error");
@@ -65,7 +63,7 @@ int postProfile(FCGX_Request *request, ffunc_session_t * csession) {
 	// not need to free, csession handle it
 	char *payload;
 	long sz = ffunc_readContent(request, &payload);
-	flog_info("the sz is = %ld", sz);
+	printf("the sz is = %ld", sz);
 	ffunc_write_out("Status: 200 OK\r\n");
 	ffunc_write_out("Content-Type: application/x-www-form-urlencoded\r\n\r\n");
 	// ffunc_write_out("Content-Length: %d\r\n\r\n", sz);
@@ -87,7 +85,7 @@ int postProfile(FCGX_Request *request, ffunc_session_t * csession) {
 	// 	cJSON_Delete(thisObj);
 	// }
 
-	flog_info("%s\n", payload);
+	printf("%s\n", payload);
 
 
 	return 1;
@@ -95,7 +93,7 @@ int postProfile(FCGX_Request *request, ffunc_session_t * csession) {
 
 int main (int argc, char *argv[]) {
 	char* ffunc_nmap_func[] = {"getProfile", "postError", "postProfile", NULL};
-	ffunc_main (argc, argv, ffunc_nmap_func, NULL, NULL);
+	return ffunc_main (2005, 160, 640, ffunc_nmap_func, NULL);
 }
 
 
@@ -104,11 +102,8 @@ int main (int argc, char *argv[]) {
 #endif
 
 
-
-
-
 // int memcheck(FCGX_Request *request, ffunc_session_t * csession) {
-// 	// flog_info("%s\n", "you reach here");
+// 	// printf("%s\n", "you reach here");
 // 	ffunc_write_out("Status: 200 OK\r\n");
 // 	ffunc_write_out("Content-Type: text/plain\r\n\r\n"); \r\n\r\n  means go to response message
 // 	ffunc_write_out("alloc= %d\n", get_total_malloc_count());

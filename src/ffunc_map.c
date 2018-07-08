@@ -86,7 +86,7 @@ unsigned char* ffunc_map_get(ffunc_map *map_, SKey key) {
  //    int i;
  //    unsigned long slen = strlen(key) + 1;
  // 	for (i = 0; i < map_->used; i++, ptr++) {
- // 		// printf("%s\n", (SKey) *ptr);
+ // 		// ffunc_print("%s\n", (SKey) *ptr);
  // 		if (strcmp((SKey) *ptr, key) == 0)goto FOUND;
  // 	}// while (ptr && *(ptr) && *(SKey*) *ptr != key) ptr++;
  // 	return 0;
@@ -145,29 +145,29 @@ void ffunc_map_destroy(ffunc_map *map_) {
 //	o2->name = "ffunc_str_array: Hello, how are you 2?";
 //
 //	SKey p3 = "123456789012";
-//	printf("%lu\n", strlen(p3));
+//	ffunc_print("%lu\n", strlen(p3));
 //	Object *o3 = (Object*) ffunc_map_assign(sarray, p3);
 //	o3->name = "ffunc_str_array: Hello, how are you 3?";
 //
 //	Object *object = (Object*) ffunc_map_get(sarray, "22");
 //
 //	if (object)
-//		printf("%s\n", object->name);
+//		ffunc_print("%s\n", object->name);
 //
 //
 //	object = (Object*) ffunc_map_get(sarray, "111111");
 //
 //	if (object)
-//		printf("%s\n", object->name);
+//		ffunc_print("%s\n", object->name);
 //
 //	object = (Object*) ffunc_map_get(sarray, "123456789012");
 //
 //	if (object)
-//		printf("%s\n", object->name);
+//		ffunc_print("%s\n", object->name);
 //
 //
 //	if(ffunc_map_remove(sarray, "111111")) {
-//		printf("%s\n", "Successfully removed");
+//		ffunc_print("%s\n", "Successfully removed");
 //	}
 //
 //

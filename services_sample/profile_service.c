@@ -1,8 +1,11 @@
 #include <ffunc/ffunc_core.h>
 // #include <ffunc/ffunc_mem_detect.h>
 
+/*Compile*/
+/*gcc ../services_sample/profile_service.c -lffunc -lfcgi -rdynamic -o simple_service*/
+static int req_count = 0;
 int getProfile(FCGX_Request *request, ffunc_session_t * csession) {
-	flog_info("%s\n", "you reach here with get Request");
+	// printf("%s-%d\n", "you reach here with get Request", __atomic_fetch_add(&req_count, 1 , __ATOMIC_SEQ_CST));
 	ffunc_write_out("Status: 200 OK\r\n");
 	ffunc_write_out("Content-Type: text/plain\r\n\r\n");/* \r\n\r\n  means go to response message*/
 	ffunc_write_out("%s\n", "you are here");
@@ -14,7 +17,6 @@ int getProfile(FCGX_Request *request, ffunc_session_t * csession) {
 	/* Generate a seg fault, for testing purpose */
 	// static int ss = 0;
 	// if (ss++ < 5000) *(int *)NULL = 0;
-
 	if (session->query_str) {
 		char *out = ffunc_getParam("userId", session->query_str);
 		if (out)
@@ -23,16 +25,13 @@ int getProfile(FCGX_Request *request, ffunc_session_t * csession) {
 		out = ffunc_getParam("userId2", session->query_str);
 		if (out)
 			ffunc_write_out("output 2= %s\n", out); //cjson undefined because only use it's own file
-
-
 	}
-
 
 	return 1;
 }
 
 int postError(FCGX_Request *request, ffunc_session_t * csession) {
-	flog_info("%s\n", "you reach here with post Error test");
+	printf("%s\n", "you reach here with post Error test");
 	ffunc_write_out("Status: 500 Internal Server Error\r\n");
 	ffunc_write_out("Content-Type: text/plain\r\n\r\n");
 	ffunc_write_out("%s\n", "you hitting error");
@@ -55,7 +54,7 @@ int postProfile(FCGX_Request *request, ffunc_session_t * csession) {
 	// not need to free, csession handle it
 	char *payload;
 	long sz = ffunc_readContent(request, &payload);
-	flog_info("the sz is = %ld", sz);
+	printf("the sz is = %ld", sz);
 	ffunc_write_out("Status: 200 OK\r\n");
 	ffunc_write_out("Content-Type: application/x-www-form-urlencoded\r\n\r\n");
 	// ffunc_write_out("Content-Length: %d\r\n\r\n", sz);
@@ -77,7 +76,7 @@ int postProfile(FCGX_Request *request, ffunc_session_t * csession) {
 	// 	cJSON_Delete(thisObj);
 	// }
 
-	flog_info("%s\n", payload);
+	printf("%s\n", payload);
 
 
 	return 1;
@@ -85,13 +84,11 @@ int postProfile(FCGX_Request *request, ffunc_session_t * csession) {
 
 int main (int argc, char *argv[]) {
 	char* ffunc_nmap_func[] = {"getProfile", "postError", "postProfile", NULL};
-	ffunc_main (argc, argv, ffunc_nmap_func, NULL, NULL);
+	return ffunc_main (2005, 160, 640, ffunc_nmap_func, NULL);
 }
 
-
-
 // int memcheck(FCGX_Request *request, ffunc_session_t * csession) {
-// 	// flog_info("%s\n", "you reach here");
+// 	// printf("%s\n", "you reach here");
 // 	ffunc_write_out("Status: 200 OK\r\n");
 // 	ffunc_write_out("Content-Type: text/plain\r\n\r\n"); \r\n\r\n  means go to response message
 // 	ffunc_write_out("alloc= %d\n", get_total_malloc_count());
