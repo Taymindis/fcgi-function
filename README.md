@@ -1,8 +1,11 @@
-# Alternative Choice (Recommended):
+# Recommendation
+Due to built in logging mechanism will slow down the process speed, suggested to use third party logging mechanism for your application layer such as:-
 
-### Introducing a nginx module [nginx-c-function](https://github.com/Taymindis/nginx-c-function) which enable to link your .so(c/c++) application via nginx config and call the function in directive context, It is more faster and stable than fcgi-function as it is built under nginx module.
+[C++ spdlog](https://github.com/gabime/spdlog)
 
+[C++ g3log](https://github.com/KjellKod/g3log)
 
+[C mini-async-log](https://github.com/RafaGago/mini-async-log)
 
 
 
