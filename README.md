@@ -81,7 +81,6 @@ Install the project...
 > ./simple_service
 
 it will result:-
-Available options:
 
 ```bash
 
