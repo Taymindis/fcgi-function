@@ -1,18 +1,22 @@
 #include <ffunc/ffunc_core.h>
-// #include <ffunc/ffunc_mem_detect.h>
 #include <iostream>
 #include <vector>
-
-
+/*https://github.com/gabime/spdlog*/
+#include <spdlog/spdlog.h>
+/***
+Using spdlog
+g++ -std=c++11 -I/home/booking/clib/spdlog-0.17.0/include -DSPDLOG_FMT_PRINTF ../services_sample/cpp_profile_service.cpp -lffunc -lfcgi -rdynamic -o simple_service
+**/
+static std::shared_ptr<spdlog::logger> file_logger = 0;
 
 class MyType
 {
 public:
 	MyType() {
-		printf("%s\n", "ASD");
+		file_logger->info("%s\n", "ASD");
 	}
-	~MyType(){
-		printf("%s\n", "Value been freed");
+	~MyType() {
+		file_logger->info("%s\n", "Value been freed");
 	}
 };
 
@@ -21,8 +25,20 @@ public:
 extern "C" {
 #endif
 
+void init_logger_in_instance(void);
+
+void init_logger_in_instance() {
+	fprintf(stderr, "%s\n", "start instance");
+	fprintf(stderr, "%s\n", "init logging");
+	auto rotating = std::make_shared<spdlog::sinks::rotating_file_sink_mt> ("simpledump.log", 1024 * 1024 * 5 /*5MB*/, 5);
+	file_logger = spdlog::create_async("my_logger", rotating, 8192,
+	                                   spdlog::async_overflow_policy::block_retry, nullptr, std::chrono::milliseconds{5000}/*flush interval*/, nullptr);
+
+	// file_logger->set_pattern("%v"); // Just message
+}
+
 int getProfile(FCGX_Request *request, ffunc_session_t * csession) {
-	printf("%s\n", "you reach here with get Request");
+	file_logger->info("%s\n", "you reach here with get Request");
 	ffunc_write_out("Status: 200 OK\r\n");
 	ffunc_write_out("Content-Type: text/plain\r\n\r\n");/* \r\n\r\n  means go to response message*/
 	ffunc_write_out("%s\n", "you are here");
@@ -32,12 +48,6 @@ int getProfile(FCGX_Request *request, ffunc_session_t * csession) {
 	MyType me;
 	std::vector<int> a;
 	a.push_back(1);
-
-	// printf("%s\n", session->json);
-	// cJSON * ret;
-	/* Generate a seg fault, for testing purpose */
-	// static int ss = 0;
-	// if (ss++ < 8) *(int *)NULL = 0;
 
 	if (session->query_str) {
 		char *out = (char*) ffunc_getParam("userId", session->query_str);
@@ -49,7 +59,7 @@ int getProfile(FCGX_Request *request, ffunc_session_t * csession) {
 }
 
 int postError(FCGX_Request *request, ffunc_session_t * csession) {
-	printf("%s\n", "you reach here with post Error test");
+	file_logger->info("%s\n", "you reach here with post Error test");
 	ffunc_write_out("Status: 500 Internal Server Error\r\n");
 	ffunc_write_out("Content-Type: text/plain\r\n\r\n");
 	ffunc_write_out("%s\n", "you hitting error");
@@ -59,33 +69,14 @@ int postError(FCGX_Request *request, ffunc_session_t * csession) {
 
 
 int postProfile(FCGX_Request *request, ffunc_session_t * csession) {
-
 	// not need to free, csession handle it
 	char *payload;
 	long sz = ffunc_readContent(request, &payload);
-	printf("the sz is = %ld", sz);
+	file_logger->info("the sz is = %ld", sz);
 	ffunc_write_out("Status: 200 OK\r\n");
 	ffunc_write_out("Content-Type: application/x-www-form-urlencoded\r\n\r\n");
-	// ffunc_write_out("Content-Length: %d\r\n\r\n", sz);
-	// ffunc_write_out("%s", "Data is ");
-	// ffunc_write_out("%s\n", payload);
-	// cJSON* thisObj = parse_json(payload);
-	// if (sz && thisObj) {
-	// 	cJSON *ret = (cJSON*)cjson_get_value(thisObj, "userId");
-	// 	if (ret)
-	// 		ffunc_write_out("%s\n", ret->valuestring);
-	// 	ret = (cJSON*)cjson_get_value(thisObj, "timestamp");
-	// 	if (ret)
-	// 		ffunc_write_out("%s\n", ret->valuestring);
-	// 	ret = (cJSON*)cjson_get_value(thisObj, "user_req");
-	// 	if (ret)
-	// 		ffunc_write_out("%s\n", ret->valuestring);
 
-	// 	// ffunc_write_out("%s\n", cJSON_PrintUnformatted(thisObj));
-	// 	cJSON_Delete(thisObj);
-	// }
-
-	printf("%s\n", payload);
+	file_logger->info("%s\n", payload);
 
 
 	return 1;
@@ -93,23 +84,10 @@ int postProfile(FCGX_Request *request, ffunc_session_t * csession) {
 
 int main (int argc, char *argv[]) {
 	char* ffunc_nmap_func[] = {"getProfile", "postError", "postProfile", NULL};
-	return ffunc_main (2005, 160, 640, ffunc_nmap_func, NULL);
+	return ffunc_main (2005, 160, 640, ffunc_nmap_func, init_logger_in_instance);
 }
 
 
 #ifdef __cplusplus
 }
 #endif
-
-
-// int memcheck(FCGX_Request *request, ffunc_session_t * csession) {
-// 	// printf("%s\n", "you reach here");
-// 	ffunc_write_out("Status: 200 OK\r\n");
-// 	ffunc_write_out("Content-Type: text/plain\r\n\r\n"); \r\n\r\n  means go to response message
-// 	ffunc_write_out("alloc= %d\n", get_total_malloc_count());
-// 	ffunc_write_out("free= %d\n", get_total_free_count());
-// 	ffunc_write_out("leak count= %d\n", get_total_malloc_count() - get_total_free_count());
-
-
-// 	return 1;
-// }

@@ -328,6 +328,9 @@ FFUNC_WORKER_RESTART:
 
 static int
 hook_socket(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func, void (*app_init_handler)(void)) {
+    if (app_init_handler) {
+        app_init_handler();
+    }
     FCGX_Init();
     if (!ffunc_init(ffunc_nmap_func)) {
         exit(1);
