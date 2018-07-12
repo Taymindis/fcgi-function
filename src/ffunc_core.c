@@ -132,9 +132,7 @@ extern void ffunc_print_time(char* buff) {
 
 static void
 handle_request(FCGX_Request *request) {
-
     char *value;
-    char **env = request->envp;
 
     ffunc_pool *p = create_pool(DEFAULT_BLK_SZ);
     ffunc_session_t *_csession_ = malloc(sizeof(ffunc_session_t)), *_rel_csession_;
@@ -142,12 +140,7 @@ handle_request(FCGX_Request *request) {
     _csession_->pool = p;
     _csession_->query_str = NULL;
 
-
-
-    while (*(env) && strncmp(*env, "FN_HANDLER", 10) != 0) env++;
-    value = (char*)(uintptr_t) * (env) + 11;
-
-    if (value != NULL) {
+    if ( (value = FCGX_GetParam("FN_HANDLER", request->envp)) ) {
         int i;
         for (i = 0; i < func_count; i++) {
             if (strcmp(dyna_funcs[i].name, value) == 0) {
