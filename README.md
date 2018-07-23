@@ -100,10 +100,10 @@ Socket on hook 2005
 > nohup bash -c "./simple_service" >/dev/null 2>&1 &
 
 ### 6.2 Running on valgrind (performance will impact)
-> valgrind --leak-check=full --show-leak-kinds=all ./simple_service
+> valgrind --leak-check=full --show-leak-kinds=all --trace-children=yes ./simple_service
 
 #### 6.2.1 valgrind on background (recommended for UAT purpose)
-> nohup bash -c "valgrind --leak-check=full --log-file=/home/user1/valgrind_check.log ./simple_service" >/dev/null 2>&1 &
+> nohup bash -c "valgrind --leak-check=full --show-leak-kinds=all --trace-children=yes --log-file=/home/user1/valgrind_check.log ./simple_service" >/dev/null 2>&1 &
 
 ### 7. Edit the nginx.conf in your nginx config folder by append in your server block:-
 
