@@ -31,30 +31,27 @@ struct ffunc_handler {
     h handle;
 };
 
+typedef struct  {
+    int fcgi_func_socket;
+    pthread_mutex_t accept_mutex;
+} ffunc_worker_t;
+
 static int func_count = 0;
 struct ffunc_handler *dyna_funcs = NULL;
 
 static size_t max_std_input_buffer;
 static __atomic_hash_n *thread_hash;
-static int total_threads, remain_threads;
 
 static int ffunc_init(char** ffunc_nmap_func);
 void* Malloc_Function(size_t sz);
 void Free_Function(void* v);
 int strpos(const char *haystack, const char *needle);
+void *ffunc_thread_worker(void* wrker);
 static int hook_socket(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func, void (*app_init_handler)(void) );
 static void ffunc_add_signal_handler(void);
 static void handle_request(FCGX_Request *request);
-static inline void *handle_request_t(void *req) {
-    handle_request((FCGX_Request*)req);
-    FCGX_Finish_r((FCGX_Request*)req);
-    free(req);
-    __atomic_fetch_add(&remain_threads, -1, __ATOMIC_SEQ_CST);
-    pthread_exit(NULL);
-}
 static int  has_init_signal = 0;
 static struct sigaction sa;
-static int fcgi_func_socket;
 static void *usr_req_handle;
 
 void* Malloc_Function(size_t sz) {
@@ -75,7 +72,6 @@ static void
 free_t(void* node) {
     free(node);
 }
-
 
 static int
 ffunc_init(char** ffunc_nmap_func) {
@@ -294,29 +290,54 @@ ffunc_main2(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func, 
     ffunc_print("sock_port=%d, backlog=%d\n", sock_port, backlog);
 
 FFUNC_WORKER_RESTART:
-    if (!has_init_signal) {
-        ffunc_add_signal_handler();
-    }
-    childPID = fork();
-    if (childPID >= 0) {// fork was successful
-        if (childPID == 0) {// child process
-            return hook_socket(sock_port, backlog, max_thread, ffunc_nmap_func, app_init_handler);
-        } else {//Parent process
-            while (1) {
-                if (waitpid(childPID, &child_status, WNOHANG) == childPID) {
-                    has_init_signal = 0;
-                    goto FFUNC_WORKER_RESTART;
-                }
-                sleep(1);
-            }
-
+        if (!has_init_signal) {
+            ffunc_add_signal_handler();
         }
-    } else {// fork failed
-        ffunc_print("%s\n", "Fork Child failed..");
-        return -1;
-    }
-    return 0;
+        childPID = fork();
+        if (childPID >= 0) {// fork was successful
+            if (childPID == 0) {// child process
+                return hook_socket(sock_port, backlog, max_thread, ffunc_nmap_func, app_init_handler);
+            } else {//Parent process
+                while (1) {
+                    if (waitpid(childPID, &child_status, WNOHANG) == childPID) {
+                        has_init_signal = 0;
+                        goto FFUNC_WORKER_RESTART;
+                    }
+                    sleep(1);
+                }
+
+            }
+        } else {// fork failed
+            ffunc_print("%s\n", "Fork Child failed..");
+            return -1;
+        }
+        return 0;
     // return hook_socket(sock_port, backlog, max_thread, ffunc_nmap_func, app_init_handler);
+}
+
+void *
+ffunc_thread_worker(void* wrker) {
+    int rc;
+    ffunc_worker_t *worker_t = (ffunc_worker_t*) wrker;
+
+    FCGX_Request request;
+    if (FCGX_InitRequest(&request, worker_t->fcgi_func_socket, FCGI_FAIL_ACCEPT_ON_INTR) != 0) {
+        ffunc_print("%s\n", "Can not init request");
+        return NULL;
+    }
+    while (1) {
+        pthread_mutex_lock(&worker_t->accept_mutex);
+        rc = FCGX_Accept_r(&request);
+        pthread_mutex_unlock(&worker_t->accept_mutex);
+        if (rc < 0) {
+            ffunc_print("%s\n", "Cannot accept new request");
+            FCGX_Finish_r(&request); // this will free all the fcgiparams memory and request
+            continue;
+        }
+        handle_request(&request);
+        FCGX_Finish_r(&request); // this will free all the fcgiparams memory and request
+    }
+    pthread_exit(NULL);
 }
 
 static int
@@ -330,55 +351,43 @@ hook_socket(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func, 
     }
 
     char port_str[12];
+    ffunc_worker_t *worker_t = Malloc_Function(sizeof(ffunc_worker_t));
+    if (worker_t == NULL) {
+        perror("nomem");
+    }
+
+    worker_t->accept_mutex = (pthread_mutex_t) PTHREAD_MUTEX_INITIALIZER; // this is lock for all threads
+    int i;
     sprintf(port_str, ":%d", sock_port);
-    remain_threads = 0;
-    total_threads = max_thread;
 
     if (sock_port) {
         if (backlog)
-            fcgi_func_socket = FCGX_OpenSocket(port_str, backlog);
+            worker_t->fcgi_func_socket = FCGX_OpenSocket(port_str, backlog);
         else
-            fcgi_func_socket = FCGX_OpenSocket(port_str, 50);
+            worker_t->fcgi_func_socket = FCGX_OpenSocket(port_str, 50);
     } else {
         ffunc_print("%s\n", "argument wrong");
         exit(1);
     }
 
-    if (fcgi_func_socket < 0) {
+    if (worker_t->fcgi_func_socket < 0) {
         ffunc_print("%s\n", "unable to open the socket" );
         exit(1);
     }
 
     ffunc_print("%d threads \n", max_thread);
-    thread_hash = __atomic_hash_n_init(max_thread + 10, read_t, free_t);
+    thread_hash = __atomic_hash_n_init(max_thread + 10 /*Padding*/, read_t, free_t);
     ffunc_print("Socket on hook %d\n", sock_port);
-
-
-    FCGX_Request *request = calloc(1, sizeof(FCGX_Request));
-    FCGX_InitRequest(request, fcgi_func_socket, FCGI_FAIL_ACCEPT_ON_INTR);
-
-    while (FCGX_Accept_r(request) >= 0) {
-        if (__atomic_fetch_add(&remain_threads, 1, __ATOMIC_SEQ_CST) <= total_threads) {
-            pthread_t t;
-            if (pthread_create(&t, NULL, handle_request_t, request)) {
-                FCGX_Finish_r((FCGX_Request*)request);
-                free(request);
-                fprintf(stderr, "Error creating thread %s\n", strerror(errno));
-            }
-            pthread_detach(t);
-            // handle_request(request);
-            // FCGX_Finish_r(request);
-        } else {
-            ffunc_write_http_status(request, 500);
-            FCGX_FPrintF(request->out, "Content-Type: text/plain\r\n\r\n");
-            FCGX_FPrintF(request->out, "%s\n", "Out of acceptable threads ");
-            FCGX_Finish_r(request);
-            free(request);
-            __atomic_fetch_add(&remain_threads, -1, __ATOMIC_SEQ_CST);
-        }
-        request = calloc(1, sizeof(FCGX_Request));
-        FCGX_InitRequest(request, fcgi_func_socket, FCGI_FAIL_ACCEPT_ON_INTR);
+    
+    pthread_t pth_workers[max_thread];
+    for ( i=0; i < max_thread; i++) {
+        pthread_create(&pth_workers[i], NULL, ffunc_thread_worker, worker_t);
+        // pthread_detach(pth_worker);
     }
+    for ( i = 0; i < max_thread; i++) {
+       pthread_join(pth_workers[i], NULL);
+    }
+
     ffunc_print("%s\n", "Exiting");
     return EXIT_SUCCESS;
 }
@@ -421,7 +430,6 @@ ffunc_add_signal_handler() {
 #endif
     has_init_signal = 1;
 }
-
 
 void
 ffunc_write_http_status(FCGX_Request * request, uint16_t code) {
