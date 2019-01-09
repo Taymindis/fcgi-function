@@ -1,5 +1,8 @@
-cmake_minimum_required (VERSION 2.8)
-cmake_policy(SET CMP0048 NEW)
+cmake_minimum_required(VERSION 3.3.2)
+if (APPLE)
+  cmake_policy(SET CMP0042 NEW)
+endif()
+
 
 if(UNIX AND NOT APPLE)
     set(FCGIFUNC_LINUX TRUE)
@@ -87,8 +90,8 @@ SET (SRCDIR src)
 
 SET (ATOMIC_HASH_DIR atomic_hashtable)
 
-SET (SRCS ${SRCDIR}/ffunc_core.c ${SRCDIR}/ffunc_pool.c ${SRCDIR}/ffunc_hash.c ${SRCDIR}/ffunc_map.c ${ATOMIC_HASH_DIR}/atomic_hashtable.c ${ATOMIC_HASH_DIR}/atomic_hashtable_n.c ${SRCDIR}/ffunc_buf.c)
-SET (HDRS ${INCLUDES}/ffunc_core.h ${INCLUDES}/ffunc_pool.h ${INCLUDES}/ffunc_hash.h ${INCLUDES}/ffunc_map.h ${ATOMIC_HASH_DIR}/atomic_hashtable.h ${ATOMIC_HASH_DIR}/atomic_hashtable_n.h ${INCLUDES}/ffunc_buf.h)
+SET (SRCS ${SRCDIR}/ffunc_core.c ${SRCDIR}/ffunc_pool.c ${SRCDIR}/ffunc_buf.c)
+SET (HDRS ${INCLUDES}/ffunc_core.h ${INCLUDES}/ffunc_pool.h ${INCLUDES}/ffunc_buf.h)
 
 add_library(${PROJ_FCGIFUNC}.static STATIC ${HDRS} ${SRCS})
 set_target_properties(${PROJ_FCGIFUNC}.static PROPERTIES OUTPUT_NAME ${PROJ_FCGIFUNC})
@@ -102,14 +105,14 @@ link_directories(/usr/local/lib /usr/lib)
 
 if(UNIX AND NOT APPLE)
 # target_link_libraries(${PROJ_FCGIFUNC} ${LIB_DL}) #static link to fcgi
-target_link_libraries(${PROJ_FCGIFUNC} fcgi dl pthread atomic)  #dynamic link to -ldl
+target_link_libraries(${PROJ_FCGIFUNC} fcgi dl pthread)  #dynamic link to -ldl
 # target_link_libraries(${PROJ_FCGIFUNC}.static ${LIB_DL}) #static link 
-target_link_libraries(${PROJ_FCGIFUNC}.static fcgi dl pthread atomic) #dynamic link to -ldl
+target_link_libraries(${PROJ_FCGIFUNC}.static fcgi dl pthread) #dynamic link to -ldl
 else(UNIX AND NOT APPLE)
 # target_link_libraries(${PROJ_FCGIFUNC} ${LIB_DL}) #static link to fcgi
-target_link_libraries(${PROJ_FCGIFUNC} fcgi dl pthread atomic)  #dynamic link to -ldl
+target_link_libraries(${PROJ_FCGIFUNC} fcgi dl pthread)  #dynamic link to -ldl
 # target_link_libraries(${PROJ_FCGIFUNC}.static ${LIB_DL}) #static link 
-target_link_libraries(${PROJ_FCGIFUNC}.static fcgi dl pthread atomic) #dynamic link to -ldl
+target_link_libraries(${PROJ_FCGIFUNC}.static fcgi dl pthread) #dynamic link to -ldl
 endif(UNIX AND NOT APPLE)
 
 
@@ -124,12 +127,8 @@ install(TARGETS ${PROJ_FCGIFUNC}.static EXPORT ${PROJ_FCGIFUNC}
 		# RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 		)
 install(FILES ${INCLUDES}/ffunc_core.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install(FILES ${INCLUDES}/ffunc_hash.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install(FILES ${INCLUDES}/ffunc_map.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${INCLUDES}/ffunc_buf.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${INCLUDES}/ffunc_pool.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install(FILES ${ATOMIC_HASH_DIR}/atomic_hashtable.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install(FILES ${ATOMIC_HASH_DIR}/atomic_hashtable_n.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 # install(TARGETS ffunc EXPORT ffunc DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(CODE "execute_process(COMMAND ldconfig)")

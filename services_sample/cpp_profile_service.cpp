@@ -37,44 +37,42 @@ void init_logger_in_instance() {
 	// file_logger->set_pattern("%v"); // Just message
 }
 
-int getProfile(FCGX_Request *request, ffunc_session_t * csession) {
+int getProfile(ffunc_session_t * session) {
 	file_logger->info("%s\n", "you reach here with get Request");
-	ffunc_write_out("Status: 200 OK\r\n");
-	ffunc_write_out("Content-Type: text/plain\r\n\r\n");/* \r\n\r\n  means go to response message*/
-	ffunc_write_out("%s\n", "you are here");
-
-	ffunc_session_t *session = ffunc_get_session();
+	ffunc_write_out(session, "Status: 200 OK\r\n");
+	ffunc_write_out(session, "Content-Type: text/plain\r\n\r\n");/* \r\n\r\n  means go to response message*/
+	ffunc_write_out(session, "%s\n", "you are here");
 
 	MyType me;
 	std::vector<int> a;
 	a.push_back(1);
 
 	if (session->query_str) {
-		char *out = (char*) ffunc_getParam("userId", session->query_str);
+		char *out = (char*) ffunc_get_query_param(session, "userId", sizeof("userId")- 1);
 		if (out)
-			ffunc_write_out("output= %s\n", out); //cjson undefined because only use it's own file
+			ffunc_write_out(session, "output= %s\n", out); //cjson undefined because only use it's own file
 	}
 
 	return 1;
 }
 
-int postError(FCGX_Request *request, ffunc_session_t * csession) {
+int postError(ffunc_session_t * session) {
 	file_logger->info("%s\n", "you reach here with post Error test");
-	ffunc_write_out("Status: 500 Internal Server Error\r\n");
-	ffunc_write_out("Content-Type: text/plain\r\n\r\n");
-	ffunc_write_out("%s\n", "you hitting error");
+	ffunc_write_out(session, "Status: 500 Internal Server Error\r\n");
+	ffunc_write_out(session, "Content-Type: text/plain\r\n\r\n");
+	ffunc_write_out(session, "%s\n", "you hitting error");
 
 	return 1;
 }
 
 
-int postProfile(FCGX_Request *request, ffunc_session_t * csession) {
-	// not need to free, csession handle it
+int postProfile(ffunc_session_t * session) {
+	// not need to free, session handle it
 	char *payload;
-	long sz = ffunc_readContent(request, &payload);
+	long sz = ffunc_read_body(session, &payload);
 	file_logger->info("the sz is = %ld", sz);
-	ffunc_write_out("Status: 200 OK\r\n");
-	ffunc_write_out("Content-Type: application/x-www-form-urlencoded\r\n\r\n");
+	ffunc_write_out(session, "Status: 200 OK\r\n");
+	ffunc_write_out(session, "Content-Type: application/x-www-form-urlencoded\r\n\r\n");
 
 	file_logger->info("%s\n", payload);
 

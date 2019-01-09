@@ -22,12 +22,7 @@ extern "C" {
 #include <sys/time.h>
 
 #include "ffunc_pool.h"
-#include "ffunc_hash.h"
-#include "ffunc_map.h"
 #include "ffunc_buf.h"
-
-#include "atomic_hashtable.h"
-#include "atomic_hashtable_n.h"	
 
 #define FLOGGER_ stderr
 
@@ -41,8 +36,8 @@ extern "C" {
 typedef struct {
 	ffunc_pool *pool;
 	char *query_str;
-	int session_id;
-	sigset_t *curr_mask;
+	FCGX_Request *request;
+	// sigset_t *curr_mask;
 } ffunc_session_t;
 
 static const char AMPERSAND_DELIM = '&';
@@ -53,7 +48,7 @@ extern int ffunc_main2(int sock_port, int backlog, int max_thread, char** ffunc_
 extern int ffunc_file_existd(const char* fname);
 extern void ffunc_print_time(char* buff);
 
-#define ffunc_write_out(...) FCGX_FPrintF(request->out, __VA_ARGS__)
+#define ffunc_write_out(_csession, ...) FCGX_FPrintF(_csession->request->out, __VA_ARGS__)
 #define ffunc_alloc(ffunc_session_t, sz) falloc(&ffunc_session_t->pool, sz)
 #define ffunc_pool_sz(ffunc_session_t) blk_size(ffunc_session_t->pool)
 #define STRINGIFY(x) #x
@@ -62,19 +57,18 @@ extern void ffunc_print_time(char* buff);
 size_t slen(const char* str);
 int ffunc_isspace(const char* s);
 
-char *duplistr(const char *str);
+char *duplistr(ffunc_session_t * csession, const char *str);
 int is_empty(char *s);
 
-ffunc_session_t *ffunc_get_session(void);
 
 // char *getBodyContent(FCGX_Request *request);
-long ffunc_readContent(FCGX_Request *request, char** content);
-void* ffunc_getParam(const char *key, char* query_str);
+long ffunc_read_body(ffunc_session_t * csession, char** content);
+void* ffunc_get_query_param(ffunc_session_t * csession, const char *key, size_t len);
 
-void ffunc_write_http_status(FCGX_Request *request, uint16_t code);
-void ffunc_write_default_header(FCGX_Request *request);
-void ffunc_write_jsonp_header(FCGX_Request *request);
-void ffunc_write_json_header(FCGX_Request *request);
+void ffunc_write_http_status(ffunc_session_t * csession, uint16_t code);
+void ffunc_write_default_header(ffunc_session_t * csession);
+void ffunc_write_jsonp_header(ffunc_session_t * csession);
+void ffunc_write_json_header(ffunc_session_t * csession);
 
 
 #ifdef __cplusplus

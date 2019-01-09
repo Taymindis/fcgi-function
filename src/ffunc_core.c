@@ -24,7 +24,7 @@
 #define _get_param_(KEY) FCGX_GetParam(KEY, request->envp)
 #define ffunc_print(...) fprintf (stderr, __VA_ARGS__)
 
-typedef int (*h)(FCGX_Request *, ffunc_session_t*);
+typedef int (*h)(ffunc_session_t*);
 
 struct ffunc_handler {
     char* name;
@@ -40,7 +40,6 @@ static int func_count = 0;
 struct ffunc_handler *dyna_funcs = NULL;
 
 static size_t max_std_input_buffer;
-static __atomic_hash_n *thread_hash;
 
 static int ffunc_init(char** ffunc_nmap_func);
 void* Malloc_Function(size_t sz);
@@ -54,28 +53,29 @@ static int  has_init_signal = 0;
 static struct sigaction sa;
 static void *usr_req_handle;
 
-void* Malloc_Function(size_t sz) {
+void* 
+Malloc_Function(size_t sz) {
     return malloc(sz);
 }
-void Free_Function(void* v) {
+void 
+Free_Function(void* v) {
     free(v);
 }
 
-static void*
-read_t(void *origin) {
-    ffunc_session_t *_csession_ = malloc(sizeof(ffunc_session_t));
-    memcpy(_csession_, origin, sizeof(ffunc_session_t));
-    return _csession_;
-}
+// static void*
+// read_t(void *origin) {
+//     ffunc_session_t *_csession_ = malloc(sizeof(ffunc_session_t));
+//     memcpy(_csession_, origin, sizeof(ffunc_session_t));
+//     return _csession_;
+// }
 
-static void
-free_t(void* node) {
-    free(node);
-}
+// static void
+// free_t(void* node) {
+//     free(node);
+// }
 
 static int
 ffunc_init(char** ffunc_nmap_func) {
-    ffunc_hash_set_alloc_fn(Malloc_Function, Free_Function);
     ffunc_buf_set_alloc_fn(Malloc_Function, Free_Function);
 
     usr_req_handle = NULL;
@@ -109,9 +109,9 @@ ffunc_init(char** ffunc_nmap_func) {
 }
 
 /**To prevent -std=99 issue**/
-char *duplistr(const char *str) {
+char *
+duplistr(ffunc_session_t * csession, const char *str) {
     int n = strlen(str) + 1;
-    ffunc_session_t * csession = ffunc_get_session();
     char *dup = falloc(&csession->pool, n);
     memset(dup, 0, n);
     if (dup)
@@ -121,7 +121,8 @@ char *duplistr(const char *str) {
     return dup;
 }
 
-extern void ffunc_print_time(char* buff) {
+void 
+ffunc_print_time(char* buff) {
     time_t now = time(NULL);
     strftime(buff, 20, "%Y-%m-%d %H:%M:%S", localtime(&now));
 }
@@ -131,76 +132,74 @@ handle_request(FCGX_Request *request) {
     char *value;
 
     ffunc_pool *p = create_pool(DEFAULT_BLK_SZ);
-    ffunc_session_t *_csession_ = malloc(sizeof(ffunc_session_t)), *_rel_csession_;
-    __atomic_hash_n_put(thread_hash, pthread_self(), _csession_);
+    ffunc_session_t *_csession_ = malloc(sizeof(ffunc_session_t));
+    if( p == NULL || _csession_ == NULL) {
+       fprintf(stderr, "error %s\n", strerror(errno));
+       exit(EXIT_FAILURE);
+    }
     _csession_->pool = p;
     _csession_->query_str = NULL;
+    _csession_->request = request;
 
     if ( (value = FCGX_GetParam("FN_HANDLER", request->envp)) ) {
         int i;
         for (i = 0; i < func_count; i++) {
             if (strcmp(dyna_funcs[i].name, value) == 0) {
-                if (strcmp(_get_param_("REQUEST_METHOD"), "GET") == 0) {
-                    char* query_string = duplistr(_get_param_("QUERY_STRING"));
-                    if (!is_empty(query_string))
-                        _csession_->query_str = query_string;//parse_json_fr_args(query_string);
+                char* query_string = duplistr(_csession_, _get_param_("QUERY_STRING"));
+                if (!is_empty(query_string)) {
+                    _csession_->query_str = query_string;//parse_json_fr_args(query_string);
                 }
 
-                dyna_funcs[i].handle(request, _csession_);
+                dyna_funcs[i].handle(_csession_);
 
                 goto RELEASE_POOL;
             }
         }
     } else {
-        ffunc_write_out("Content-Type: text/plain\r\n\r\n");
-        ffunc_write_out("%s\n", "FN_HANDLER not found");
-        ffunc_write_out("%s\n", "Please provide your FN_HANDLER in your config file");
-        ffunc_write_out("%s\n", "For e.g nginx.conf fastcgi_param FN_HANDLER getProfile");
+        ffunc_write_out(_csession_, "Content-Type: text/plain\r\n\r\n");
+        ffunc_write_out(_csession_, "%s\n", "FN_HANDLER not found");
+        ffunc_write_out(_csession_, "%s\n", "Please provide your FN_HANDLER in your config file");
+        ffunc_write_out(_csession_, "%s\n", "For e.g nginx.conf fastcgi_param FN_HANDLER getProfile");
     }
 
 
 RELEASE_POOL:
-    _rel_csession_ = __atomic_hash_n_pop(thread_hash, pthread_self());
-    if (_rel_csession_) { //free the _csession_
-        destroy_pool(_rel_csession_->pool);
-        free(_rel_csession_);
-        // fprintf(stdout, "%s\n", "successfully free _csession_:");
-        // fprintf(stdout, "%s\n", "successfully freed");
-        // so far all are freed.
-        // fhash_unlock(thread_table);
-    } else {
         destroy_pool(p);
-        // fhash_unlock(thread_table);
-    }
+        free(_csession_);
 }
 
-size_t slen(const char* str) {
+size_t 
+slen(const char* str) {
     register const char *s;
     for (s = str; *s; ++s);
     return (s - str);
 }
 
-int ffunc_isspace(const char* s) {
+int 
+ffunc_isspace(const char* s) {
     return (*s == SPACE || *s == TAB || *s == NEW_LINE ||
             *s == VERTICAL_TAB || *s == FF_FEED || *s == CARRIAGE_RETURN ? 1 : 0);
     // return (*s == '\t' || *s == '\n' ||
     //         *s == '\v' || *s == '\f' || *s == '\r' || *s == ' ' ? 1 : 0);
 }
 
-int is_empty(char *s) {
+int 
+is_empty(char *s) {
     if (s && s[0])
         return 0;
     return 1;
 }
 
-int ffunc_file_existd(const char* fname) {
+int 
+ffunc_file_existd(const char* fname) {
     if ( access( fname, F_OK ) != -1 )
         return 1;
     else
         return 0;
 }
 
-int strpos(const char *haystack, const char *needle)
+int 
+strpos(const char *haystack, const char *needle)
 {
     char *p = strstr(haystack, needle);
     if (p)
@@ -208,11 +207,11 @@ int strpos(const char *haystack, const char *needle)
     return -1;   // Not found = -1.
 }
 
-void* ffunc_getParam(const char *key, char* query_str) {
-    int len, pos;
-    char *qs = query_str;
+void* 
+ffunc_get_query_param(ffunc_session_t * csession, const char *key, size_t len) {
+    int pos;
+    char *qs = csession->query_str;
     if (key && *key && qs && *qs) {
-        len = strlen(key);
         do {
             if ((pos = strpos(qs, key)) < 0) return NULL;
 
@@ -224,7 +223,6 @@ void* ffunc_getParam(const char *key, char* query_str) {
                     size_t sz = 0;
                     while (*qs && *qs++ != '&')sz++;
 
-                    ffunc_session_t * csession = ffunc_get_session();
                     ret = falloc(&csession->pool, sz + 1);
                     memset(ret, 0, sz + 1);
                     return memcpy(ret, src, sz);
@@ -235,7 +233,8 @@ void* ffunc_getParam(const char *key, char* query_str) {
     return NULL;
 }
 
-long ffunc_readContent(FCGX_Request *request, char** content) {
+long ffunc_read_body(ffunc_session_t * csession, char** content) {
+    FCGX_Request *request = csession->request;
     char* clenstr = _get_param_("CONTENT_LENGTH");
     FCGX_Stream *in = request->in;
     size_t len;
@@ -248,7 +247,6 @@ long ffunc_readContent(FCGX_Request *request, char** content) {
         /* Don't read more than the predefined limit  */
         if (len > max_std_input_buffer) { len = max_std_input_buffer; }
 
-        ffunc_session_t * csession = ffunc_get_session();
         *content = falloc(&csession->pool, len + 1);
         memset(*content, 0, len + 1);
         len = FCGX_GetStr(*content, len, in);
@@ -263,10 +261,6 @@ long ffunc_readContent(FCGX_Request *request, char** content) {
     while (FCGX_GetChar(in) != -1);
 
     return len;
-}
-
-ffunc_session_t *ffunc_get_session(void) {
-    return (ffunc_session_t *)__atomic_hash_n_get(thread_hash, pthread_self());
 }
 
 /**Main api**/
@@ -376,7 +370,6 @@ hook_socket(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func, 
     }
 
     ffunc_print("%d threads \n", max_thread);
-    thread_hash = __atomic_hash_n_init(max_thread + 10 /*Padding*/, read_t, free_t);
     ffunc_print("Socket on hook %d\n", sock_port);
     
     pthread_t pth_workers[max_thread];
@@ -432,34 +425,36 @@ ffunc_add_signal_handler() {
 }
 
 void
-ffunc_write_http_status(FCGX_Request * request, uint16_t code) {
-
+ffunc_write_http_status(ffunc_session_t * csession, uint16_t code) {
     switch (code) {
     case 200:
-        ffunc_write_out("Status: 200 OK\r\n");
+        ffunc_write_out(csession, "Status: 200 OK\r\n");
         break;
     case 204:
-        ffunc_write_out("Status: 204 No Content\r\n");
+        ffunc_write_out(csession, "Status: 204 No Content\r\n");
         break;
 
     case 500:
-        ffunc_write_out("Status: 500 Internal Server Error\r\n");
+        ffunc_write_out(csession, "Status: 500 Internal Server Error\r\n");
         break;
 
     default:
-        ffunc_write_out("Status: 200 OK\r\n");
+        ffunc_write_out(csession, "Status: 200 OK\r\n");
         break;
     }
 }
 
-void ffunc_write_default_header(FCGX_Request * request) {
-    ffunc_write_out("Content-Type: application/x-www-form-urlencoded\r\n\r\n");
+void 
+ffunc_write_default_header(ffunc_session_t * csession) {
+    ffunc_write_out(csession, "Content-Type: application/x-www-form-urlencoded\r\n\r\n");
 }
 
-void ffunc_write_jsonp_header(FCGX_Request * request) {
-    ffunc_write_out("Content-Type: application/javascript\r\n\r\n");
+void 
+ffunc_write_jsonp_header(ffunc_session_t * csession) {
+    ffunc_write_out(csession, "Content-Type: application/javascript\r\n\r\n");
 }
 
-void ffunc_write_json_header(FCGX_Request * request) {
-    ffunc_write_out("Content-Type: application/json\r\n\r\n");
+void 
+ffunc_write_json_header(ffunc_session_t * csession) {
+    ffunc_write_out(csession, "Content-Type: application/json\r\n\r\n");
 }
