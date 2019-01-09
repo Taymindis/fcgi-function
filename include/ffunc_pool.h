@@ -23,7 +23,6 @@ void destroy_pool( ffunc_pool *p );
 void * falloc( ffunc_pool **p, size_t size );
 size_t mem_left( ffunc_pool *p );
 size_t blk_size( ffunc_pool *p );
-ffunc_pool* re_create_pool( ffunc_pool *curr_p);
 
 #ifdef __cplusplus
 }

@@ -6,7 +6,8 @@
 /***Author: cloudleware , so far this is only applicable per thread, not for multithread ***/
 
 
-void* mem_align(size_t size);
+static void* mem_align(size_t size);
+static ffunc_pool* re_create_pool( ffunc_pool *curr_p, size_t curr_blk_sz, size_t new_size);
 
 ffunc_pool* create_pool( size_t size ) {
     ffunc_pool * p = (ffunc_pool*)mem_align(size + sizeof(ffunc_pool));
@@ -28,18 +29,17 @@ size_t blk_size( ffunc_pool *p ) {
     return (uintptr_t) p->end - (uintptr_t) (void*)&p[1];
 }
 
-ffunc_pool* re_create_pool( ffunc_pool *curr_p) {
+static ffunc_pool* 
+re_create_pool( ffunc_pool *curr_p, size_t curr_blk_sz, size_t new_size) {
     ffunc_pool *newp = NULL;
     if (curr_p) {
         // ffunc_print("%s\n", "Recreate Pool");
-        size_t curr_used_size = blk_size(curr_p);
-        size_t newSize = curr_used_size + curr_used_size;
-        newp = (ffunc_pool*)mem_align(sizeof(ffunc_pool) + newSize);
+        newp = (ffunc_pool*)mem_align(sizeof(ffunc_pool) + new_size);
         memcpy((void*)newp, (void*)curr_p, sizeof(ffunc_pool));
-        memcpy((void*)&newp[1], (void*)&curr_p[1], curr_used_size);
+        memcpy((void*)&newp[1], (void*)&curr_p[1], curr_blk_sz);
         newp->next = (void*)&newp[1]; //p + sizeof(ffunc_pool)
-        newp->end =  (void*)((uintptr_t)newp->next + newSize);
-        newp->next = (void*) ((uintptr_t) newp->next + curr_used_size);
+        newp->end =  (void*)((uintptr_t)newp->next + new_size);
+        newp->next = (void*) ((uintptr_t) newp->next + curr_blk_sz);
         destroy_pool(curr_p);
     }
     return newp;
@@ -48,8 +48,15 @@ ffunc_pool* re_create_pool( ffunc_pool *curr_p) {
 
 void * falloc( ffunc_pool **p, size_t size ){
     ffunc_pool *curr_p = *p;
-    if ( mem_left(*p) < size ) {
-        *p = curr_p = (ffunc_pool*)re_create_pool(*p);
+    if ( mem_left(curr_p) < size ) {
+        size_t curr_blk_sz = blk_size(curr_p);
+        size_t new_size = curr_blk_sz * 2;
+    
+        while ( new_size < size) {
+            new_size *= 2;
+        }
+
+        *p = curr_p = (ffunc_pool*)re_create_pool(curr_p, curr_blk_sz, new_size);
     }
     void *mem = (void*)curr_p->next;
     curr_p->next = (void*) ((uintptr_t)curr_p->next +  size); // alloc new memory
@@ -58,7 +65,7 @@ void * falloc( ffunc_pool **p, size_t size ){
     return mem;
 }
 
-void*
+static void*
 mem_align(size_t size) //alignment => 16
 {
     void  *p;

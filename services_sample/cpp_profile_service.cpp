@@ -65,13 +65,15 @@ void postError(ffunc_session_t * session) {
 
 void postProfile(ffunc_session_t * session) {
 	// not need to free, session handle it
-	char *payload;
-	long sz = ffunc_read_body(session, &payload);
-	file_logger->info("the sz is = %ld", sz);
-	ffunc_write_out(session, "Status: 200 OK\r\n");
-	ffunc_write_out(session, "Content-Type: application/x-www-form-urlencoded\r\n\r\n");
-
-	file_logger->info("%s\n", payload);
+	ffunc_str_t payload;
+	if(ffunc_read_body(session, &payload) ) {
+		file_logger->info("the sz is = %ld", payload.len);
+		ffunc_write_out(session, "Status: 200 OK\r\n");
+		ffunc_write_out(session, "Content-Type: application/x-www-form-urlencoded\r\n\r\n");
+		ffunc_write_out(session, "Query String %s\n", session->query_str);
+		ffunc_write_out(session, "Body %s\n", payload.data);
+		file_logger->info("%s\n", payload.data);
+	}
 
 }
 

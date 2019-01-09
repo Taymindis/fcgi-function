@@ -29,18 +29,19 @@ void postError(ffunc_session_t * session) {
 
 void postProfile(ffunc_session_t * session) {
 	// not need to free, csession handle it
-	char *payload;
-	long sz = ffunc_read_body(session, &payload);
-	printf("the sz is = %ld", sz);
-	ffunc_write_out(session, "Status: 200 OK\r\n");
-	ffunc_write_out(session, "Content-Type: application/x-www-form-urlencoded\r\n\r\n");
-
-	printf("%s\n", payload);
+	ffunc_str_t payload;
+	if( ffunc_read_body(session, &payload) ) {
+		printf("the sz is = %ld\n", payload.len);
+		ffunc_write_out(session, "Status: 200 OK\r\n");
+		ffunc_write_out(session, "Content-Type: application/x-www-form-urlencoded\r\n\r\n");
+		ffunc_write_out(session, "Query String %s\n", session->query_str);
+		ffunc_write_out(session, "Body %s\n", payload.data);
+	}
 }
 
 int main (int argc, char *argv[]) {
 	char* ffunc_nmap_func[] = {"getProfile", "postError", "postProfile", NULL};
-	return ffunc_main (2005, 160, 10, ffunc_nmap_func, NULL);
+	return ffunc_main (2005, 160, 64, ffunc_nmap_func, NULL);
 }
 
 // int memcheck(ffunc_session_t * csession) {

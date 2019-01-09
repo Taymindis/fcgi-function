@@ -40,6 +40,11 @@ typedef struct {
 	// sigset_t *curr_mask;
 } ffunc_session_t;
 
+typedef struct {
+	char *data;
+	size_t len;
+} ffunc_str_t;
+
 static const char AMPERSAND_DELIM = '&';
 static const char EQ_DELIM = '=';
 
@@ -62,7 +67,7 @@ int is_empty(char *s);
 
 
 // char *getBodyContent(FCGX_Request *request);
-long ffunc_read_body(ffunc_session_t * csession, char** content);
+extern size_t (*ffunc_read_body)(ffunc_session_t * , ffunc_str_t *);
 void* ffunc_get_query_param(ffunc_session_t * csession, const char *key, size_t len);
 
 void ffunc_write_http_status(ffunc_session_t * csession, uint16_t code);

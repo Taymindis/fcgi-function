@@ -49,9 +49,13 @@ void *ffunc_thread_worker(void* wrker);
 static int hook_socket(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func, void (*app_init_handler)(void) );
 static void ffunc_add_signal_handler(void);
 static void handle_request(FCGX_Request *request);
+static size_t ffunc_read_body_limit(ffunc_session_t * csession, ffunc_str_t *content);
+static size_t ffunc_read_body_nolimit(ffunc_session_t * csession, ffunc_str_t *content);
 static int  has_init_signal = 0;
 static struct sigaction sa;
 static void *usr_req_handle;
+// extern declaration
+size_t (*ffunc_read_body)(ffunc_session_t * , ffunc_str_t *);
 
 void* 
 Malloc_Function(size_t sz) {
@@ -164,7 +168,7 @@ handle_request(FCGX_Request *request) {
 
 
 RELEASE_POOL:
-        destroy_pool(p);
+        destroy_pool(_csession_->pool);
         free(_csession_);
 }
 
@@ -233,7 +237,30 @@ ffunc_get_query_param(ffunc_session_t * csession, const char *key, size_t len) {
     return NULL;
 }
 
-long ffunc_read_body(ffunc_session_t * csession, char** content) {
+static size_t 
+ffunc_read_body_nolimit(ffunc_session_t * csession, ffunc_str_t *content) {
+    FCGX_Request *request = csession->request;
+    char* clenstr = _get_param_("CONTENT_LENGTH");
+    FCGX_Stream *in = request->in;
+    size_t len;
+
+    if (clenstr && ((len = strtol(clenstr, &clenstr, 10)) != 0) ) {
+        content->data = falloc(&csession->pool, len + 1);
+        memset(content->data, 0, len + 1);
+        content->len = FCGX_GetStr(content->data, len, in);
+    } else {
+        content->data = NULL;
+        content->len = 0;
+    }
+
+    /* Chew up whats remaining (required by mod_fastcgi) */
+    while (FCGX_GetChar(in) != -1);
+
+    return len;
+}
+
+static size_t 
+ffunc_read_body_limit(ffunc_session_t * csession, ffunc_str_t *content) {
     FCGX_Request *request = csession->request;
     char* clenstr = _get_param_("CONTENT_LENGTH");
     FCGX_Stream *in = request->in;
@@ -247,14 +274,14 @@ long ffunc_read_body(ffunc_session_t * csession, char** content) {
         /* Don't read more than the predefined limit  */
         if (len > max_std_input_buffer) { len = max_std_input_buffer; }
 
-        *content = falloc(&csession->pool, len + 1);
-        memset(*content, 0, len + 1);
-        len = FCGX_GetStr(*content, len, in);
+        content->data = falloc(&csession->pool, len + 1);
+        memset(content->data, 0, len + 1);
+        content->len = FCGX_GetStr(content->data, len, in);
     }
     /* Don't read if CONTENT_LENGTH is missing or if it can't be parsed */
     else {
-        *content = 0;
-        len = 0;
+        content->data = NULL;
+        content->len = 0;
     }
 
     /* Chew up whats remaining (required by mod_fastcgi) */
@@ -266,14 +293,19 @@ long ffunc_read_body(ffunc_session_t * csession, char** content) {
 /**Main api**/
 int
 ffunc_main(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func, void (*app_init_handler)(void)) {
-    return ffunc_main2(sock_port, backlog, max_thread, ffunc_nmap_func, app_init_handler, 10240);
+    return ffunc_main2(sock_port, backlog, max_thread, ffunc_nmap_func, app_init_handler, 0);
 }
 /**Main api**/
 int
 ffunc_main2(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func, void (*app_init_handler)(void), size_t max_read_buffer) {
     pid_t childPID;
     int child_status;
-    max_std_input_buffer = max_read_buffer;
+    if(max_read_buffer > 0) {
+        max_std_input_buffer = max_read_buffer;
+        ffunc_read_body = &ffunc_read_body_limit;
+    } else {
+        ffunc_read_body = &ffunc_read_body_nolimit;
+    }
 
     if (!ffunc_nmap_func[0]) {
         ffunc_print("%s\n", "ffunc_nmap_func has no defined...");
