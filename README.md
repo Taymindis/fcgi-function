@@ -54,20 +54,9 @@ Install the project...
 
 -- Installing: /usr/local/include/ffunc/ffunc_core.h
 
--- Installing: /usr/local/include/ffunc/ffunc_json.h
-
--- Installing: /usr/local/include/ffunc/ffunc_hash.h
-
--- Installing: /usr/local/include/ffunc/ffunc_map.h
-
 -- Installing: /usr/local/include/ffunc/ffunc_buf.h
 
 -- Installing: /usr/local/include/ffunc/ffunc_pool.h
-
--- Installing: /usr/local/include/ffunc/atomic_hashtable.h
-
--- Installing: /usr/local/include/ffunc/atomic_hashtable_n.h
-
 
 ### 4. build a simple program by execute 
 
@@ -161,21 +150,9 @@ Then result
 
 -- Uninstalling: /usr/local/include/ffunc/ffunc_core.h
 
--- Uninstalling: /usr/local/include/ffunc/ffunc_json.h
-
--- Uninstalling: /usr/local/include/ffunc/ffunc_hash.h
-
--- Uninstalling: /usr/local/include/ffunc/ffunc_map.h
-
 -- Uninstalling: /usr/local/include/ffunc/ffunc_buf.h
 
 -- Uninstalling: /usr/local/include/ffunc/ffunc_pool.h
-
--- Uninstalling: /usr/local/include/ffunc/indexed_array.h
-
--- Uninstalling: /usr/local/include/ffunc/atomic_hashtable.h
-
--- Uninstalling: /usr/local/include/ffunc/atomic_hashtable_n.h
 
 
 ## Please contact minikawoon2017@gmail.com for More End to End tier project examples.
