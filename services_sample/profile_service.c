@@ -4,7 +4,7 @@
 /*Compile*/
 /*gcc ../services_sample/profile_service.c -lffunc -lfcgi -rdynamic -o simple_service*/
 static int req_count = 0;
-int getProfile(ffunc_session_t * session) {
+void getProfile(ffunc_session_t * session) {
 	ffunc_write_out(session, "Status: 200 OK\r\n");
 	ffunc_write_out(session, "Content-Type: text/plain\r\n\r\n");/* \r\n\r\n  means go to response message*/
 	ffunc_write_out(session, "%s\n", "you are here");
@@ -17,21 +17,17 @@ int getProfile(ffunc_session_t * session) {
 		if (out)
 			ffunc_write_out(session, "output 2= %s\n", out); //cjson undefined because only use it's own file
 	}
-
-	return 1;
 }
 
-int postError(ffunc_session_t * session) {
+void postError(ffunc_session_t * session) {
 	printf("%s\n", "you reach here with post Error test");
 	ffunc_write_out(session, "Status: 500 Internal Server Error\r\n");
 	ffunc_write_out(session, "Content-Type: text/plain\r\n\r\n");
 	ffunc_write_out(session, "%s\n", "you hitting error");
-
-	return 1;
 }
 
 
-int postProfile(ffunc_session_t * session) {
+void postProfile(ffunc_session_t * session) {
 	// not need to free, csession handle it
 	char *payload;
 	long sz = ffunc_read_body(session, &payload);
@@ -40,9 +36,6 @@ int postProfile(ffunc_session_t * session) {
 	ffunc_write_out(session, "Content-Type: application/x-www-form-urlencoded\r\n\r\n");
 
 	printf("%s\n", payload);
-
-
-	return 1;
 }
 
 int main (int argc, char *argv[]) {

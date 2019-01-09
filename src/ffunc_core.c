@@ -24,7 +24,7 @@
 #define _get_param_(KEY) FCGX_GetParam(KEY, request->envp)
 #define ffunc_print(...) fprintf (stderr, __VA_ARGS__)
 
-typedef int (*h)(ffunc_session_t*);
+typedef void (*h)(ffunc_session_t*);
 
 struct ffunc_handler {
     char* name;
