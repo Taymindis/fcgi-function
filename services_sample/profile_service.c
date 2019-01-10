@@ -1,8 +1,8 @@
-#include <ffunc/ffunc_core.h>
+#include "ffunc.h"
 // #include <ffunc/ffunc_mem_detect.h>
 
 /*Compile*/
-/*gcc ../services_sample/profile_service.c -lffunc -lfcgi -rdynamic -o simple_service*/
+/*gcc profile_service.c -I../ ../ffunc.c -lfcgi -pthread -ldl -rdynamic*/
 static int req_count = 0;
 void getProfile(ffunc_session_t * session) {
 	ffunc_write_out(session, "Status: 200 OK\r\n");

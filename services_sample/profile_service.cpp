@@ -2,7 +2,7 @@
 #include <iostream>
 #include <vector>
 /***
-g++ profile_service.cpp ffunc.c ffunc.h -lfcgi -pthread -ldl -rdynamic
+g++ profile_service.cpp -I../ ../ffunc.c -lfcgi -pthread -ldl -rdynamic
 **/
 
 class MyType

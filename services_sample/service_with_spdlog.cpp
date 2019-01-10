@@ -5,7 +5,7 @@
 #include <spdlog/spdlog.h>
 /***
 Using spdlog
-g++ -std=c++11 -I/home/xxx/cpplib/spdlog-0.17.0/include -DSPDLOG_FMT_PRINTF service_with_spdlog.cpp ffunc.c ffunc.h -lfcgi -pthread -ldl -rdynamic
+g++ -std=c++11 -I/home/xxx/cpplib/spdlog-0.17.0/include -I../ -DSPDLOG_FMT_PRINTF service_with_spdlog.cpp ../ffunc.c -lfcgi -pthread -ldl -rdynamic
 **/
 static std::shared_ptr<spdlog::logger> file_logger = 0;
 
