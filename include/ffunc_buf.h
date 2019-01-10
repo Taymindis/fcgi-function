@@ -26,10 +26,11 @@ ffunc_buf *ffunc_buf_init(const char *s);
 int ffunc_buf_add(ffunc_buf *fbuf, void *buf, size_t buff_size);
 int ffunc_buf_add_(ffunc_buf *fbuf, const char *s);
 int ffunc_buf_delete(ffunc_buf *fbuf);
-
+#if defined __GNUC__ || defined __CYGWIN__ || defined __MINGW32__ || defined __APPLE__
 ffunc_buf* ffunc_buf_read_file(char* file_path);
 int ffunc_buf_write_file(char* out_path, ffunc_buf* out_buff, int clear_buff);
 int ffunc_buf_append_file(char* out_path, ffunc_buf* out_buff, int clear_buff);
+#endif
 
 #ifdef __cplusplus
 }

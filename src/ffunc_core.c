@@ -1,3 +1,4 @@
+#if defined __GNUC__ || defined __CYGWIN__ || defined __MINGW32__ || defined __APPLE__
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
@@ -81,7 +82,8 @@ Free_Function(void* v) {
 static int
 ffunc_init(char** ffunc_nmap_func) {
     ffunc_buf_set_alloc_fn(Malloc_Function, Free_Function);
-
+	int f = 0;
+	SIZE_T szof_func_name;
     usr_req_handle = NULL;
     char *error;
     usr_req_handle = dlopen(NULL, RTLD_LAZY | RTLD_NOW);
@@ -91,15 +93,15 @@ ffunc_init(char** ffunc_nmap_func) {
         return 0;
     }
 
-    while (*(ffunc_nmap_func + func_count++));
+	for (func_count = 0; ffunc_nmap_func[func_count]; func_count++);
 
-    ffunc_print("total function = %d\n", --func_count); // Remove NULL
     dyna_funcs = malloc(func_count * sizeof(struct ffunc_handler));
 
-    for (int f = 0; f < func_count; f++) {
-        dyna_funcs[f].name = calloc((strlen(ffunc_nmap_func[f]) + 1), sizeof(char));
+    for (f=0; f < func_count; f++) {
+		szof_func_name = strlen(ffunc_nmap_func[f]);
+        dyna_funcs[f].name = calloc(szof_func_name + 1), sizeof(char));
 
-        strcpy(dyna_funcs[f].name, ffunc_nmap_func[f]);
+		memcpy(dyna_funcs[f].name, ffunc_nmap_func[f], szof_func_name);
 
         *(void **) (&dyna_funcs[f].handle) = dlsym(usr_req_handle, ffunc_nmap_func[f]);
 
@@ -490,3 +492,4 @@ void
 ffunc_write_json_header(ffunc_session_t * csession) {
     ffunc_write_out(csession, "Content-Type: application/json\r\n\r\n");
 }
+#endif

@@ -5,7 +5,6 @@
 #include <stdint.h>
 #include "ffunc_buf.h"
 
-#include <unistd.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 
@@ -94,7 +93,7 @@ int ffunc_buf_delete(ffunc_buf *buff_) {
 	}
 	return 1;
 }
-
+#if defined __GNUC__ || defined __CYGWIN__ || defined __MINGW32__ || defined __APPLE__
 ffunc_buf* ffunc_buf_read_file(char* file_path) {
 	ffunc_buf *buff_ = ffunc_buf_create();
 
@@ -153,3 +152,5 @@ int ffunc_buf_append_file(char* out_path, ffunc_buf* out_buff, int clear_buff) {
 	}
 	return 1;
 }
+#endif
+

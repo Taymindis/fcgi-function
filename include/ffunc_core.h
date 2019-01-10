@@ -10,7 +10,7 @@ extern "C" {
 #ifdef FDYMEMDETECT
 #include <ffunc/fdy_mem_detect.h>
 #endif
-
+#if defined __GNUC__ || defined __CYGWIN__ || defined __MINGW32__ || defined __APPLE__
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcgiapp.h>
@@ -20,7 +20,11 @@ extern "C" {
 #include <time.h>
 #include <locale.h>
 #include <sys/time.h>
-
+#define FFUNC void
+#else
+#define FFUNC extern __declspec(dllexport) void
+#include <fcgiapp.h>
+#endif
 #include "ffunc_pool.h"
 #include "ffunc_buf.h"
 
@@ -54,6 +58,7 @@ extern int ffunc_file_existd(const char* fname);
 extern void ffunc_print_time(char* buff);
 
 #define ffunc_write_out(_csession, ...) FCGX_FPrintF(_csession->request->out, __VA_ARGS__)
+#define ffunc_get_fcgi_param(_csession, constkey) FCGX_GetParam(constkey, _csession->request->envp)
 #define ffunc_alloc(ffunc_session_t, sz) falloc(&ffunc_session_t->pool, sz)
 #define ffunc_pool_sz(ffunc_session_t) blk_size(ffunc_session_t->pool)
 #define STRINGIFY(x) #x
@@ -65,8 +70,6 @@ int ffunc_isspace(const char* s);
 char *duplistr(ffunc_session_t * csession, const char *str);
 int is_empty(char *s);
 
-
-// char *getBodyContent(FCGX_Request *request);
 extern size_t (*ffunc_read_body)(ffunc_session_t * , ffunc_str_t *);
 void* ffunc_get_query_param(ffunc_session_t * csession, const char *key, size_t len);
 
