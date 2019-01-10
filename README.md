@@ -28,10 +28,17 @@ cmake and make
 ## Clone the Repository Recursively
 git clone --recursive https://github.com/Taymindis/fcgi-function.git
 
+## How to Install
 
-## Step of installation
-### 1. Go to root directory
-### 2. type 
+### Method 1. Just Include ffunc.h and ffunc.c in your project, simplest way
+#### Build sample 
+> gcc profile_service.c ffunc.c ffunc.h -lfcgi -pthread -ldl -rdynamic
+> g++ profile_service.cpp ffunc.c ffunc.h -lfcgi -pthread -ldl -rdynamic
+> g++ -std=c++11 -I/home/xxx/cpplib/spdlog-0.17.0/include -DSPDLOG_FMT_PRINTF service_with_spdlog.cpp ffunc.c ffunc.h -lfcgi -pthread -ldl -rdynamic
+
+### Method 2. install as a library ( Linux/Darwin installation, for windows, use method 1)
+#### 1. Go to root directory
+#### 2. type 
 > mkdir build (if not existed)
 
 > cd build
@@ -43,7 +50,7 @@ git clone --recursive https://github.com/Taymindis/fcgi-function.git
 > sudo make install
 
 
-### 3. the result will be
+#### 3. the result will be
 Install the project...
 
 -- Install configuration: ""
@@ -52,20 +59,16 @@ Install the project...
 
 -- Installing: /usr/local/lib/libffunc.a
 
--- Installing: /usr/local/include/ffunc/ffunc_core.h
+-- Installing: /usr/local/include/ffunc/ffunc.h
 
--- Installing: /usr/local/include/ffunc/ffunc_buf.h
-
--- Installing: /usr/local/include/ffunc/ffunc_pool.h
-
-### 4. build a simple program by execute 
+#### 4. build a simple program by execute 
 
 > gcc ../services_sample/profile_service.c -lffunc -lfcgi -rdynamic -o simple_service
 
 #### For C++
 > g++ -std=c++11 ../services_sample/cpp_profile_service.cpp -lffunc -lfcgi -latomic -rdynamic -o simple_service
 
-### 5. when you type 
+### when you type 
 
 > ./simple_service
 

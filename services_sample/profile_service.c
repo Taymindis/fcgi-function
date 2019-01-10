@@ -26,7 +26,6 @@ void postError(ffunc_session_t * session) {
 	ffunc_write_out(session, "%s\n", "you hitting error");
 }
 
-
 void postProfile(ffunc_session_t * session) {
 	// not need to free, csession handle it
 	ffunc_str_t payload;
@@ -51,7 +50,5 @@ int main (int argc, char *argv[]) {
 // 	ffunc_write_out("alloc= %d\n", get_total_malloc_count());
 // 	ffunc_write_out("free= %d\n", get_total_free_count());
 // 	ffunc_write_out("leak count= %d\n", get_total_malloc_count() - get_total_free_count());
-
-
 // 	return 1;
 // }

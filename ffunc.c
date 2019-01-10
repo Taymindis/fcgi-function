@@ -72,11 +72,11 @@ ffunc_init(char** ffunc_nmap_func) {
 
     for (func_count = 0; ffunc_nmap_func[func_count]; func_count++);
 
-    dyna_funcs = malloc(func_count * sizeof(struct ffunc_handler));
+    dyna_funcs = (struct ffunc_handler*) malloc(func_count * sizeof(struct ffunc_handler));
 
     for (f = 0; f < func_count; f++) {
         szof_func_name = strlen(ffunc_nmap_func[f]);
-        dyna_funcs[f].name = calloc(szof_func_name + 1, sizeof(char));
+        dyna_funcs[f].name = (char*) calloc(szof_func_name + 1, sizeof(char));
 
         memcpy(dyna_funcs[f].name, ffunc_nmap_func[f], szof_func_name);
 
@@ -95,7 +95,7 @@ ffunc_init(char** ffunc_nmap_func) {
 char *
 duplistr(ffunc_session_t * csession, const char *str) {
     int n = strlen(str) + 1;
-    char *dup = _ffunc_alloc(&csession->pool, n);
+    char *dup = (char*)_ffunc_alloc(&csession->pool, n);
     memset(dup, 0, n);
     if (dup)
         memcpy(dup, str, n - 1);
@@ -115,7 +115,7 @@ handle_request(FCGX_Request *request) {
     char *value;
 
     ffunc_pool *p = ffunc_create_pool(DEFAULT_BLK_SZ);
-    ffunc_session_t *_csession_ = malloc(sizeof(ffunc_session_t));
+    ffunc_session_t *_csession_ = (ffunc_session_t*)malloc(sizeof(ffunc_session_t));
     if ( p == NULL || _csession_ == NULL) {
         fprintf(stderr, "error %s\n", strerror(errno));
         exit(EXIT_FAILURE);
@@ -184,7 +184,7 @@ ffunc_file_existd(const char* fname) {
 int
 strpos(const char *haystack, const char *needle)
 {
-    char *p = strstr(haystack, needle);
+    char *p = (char*)strstr(haystack, needle);
     if (p)
         return p - haystack;
     return -1;   // Not found = -1.
@@ -206,7 +206,7 @@ ffunc_get_query_param(ffunc_session_t * csession, const char *key, size_t len) {
                     size_t sz = 0;
                     while (*qs && *qs++ != '&')sz++;
 
-                    ret = _ffunc_alloc(&csession->pool, sz + 1);
+                    ret = (char*) _ffunc_alloc(&csession->pool, sz + 1);
                     memset(ret, 0, sz + 1);
                     return memcpy(ret, src, sz);
                 } else while (*qs && *qs++ != '&');
@@ -224,7 +224,7 @@ ffunc_read_body_nolimit(ffunc_session_t * csession, ffunc_str_t *content) {
     size_t len;
 
     if (clenstr && ((len = strtol(clenstr, &clenstr, 10)) != 0) ) {
-        content->data = _ffunc_alloc(&csession->pool, len + 1);
+        content->data = (char*)_ffunc_alloc(&csession->pool, len + 1);
         memset(content->data, 0, len + 1);
         content->len = FCGX_GetStr(content->data, len, in);
     } else {
@@ -253,7 +253,7 @@ ffunc_read_body_limit(ffunc_session_t * csession, ffunc_str_t *content) {
         /* Don't read more than the predefined limit  */
         if (len > max_std_input_buffer) { len = max_std_input_buffer; }
 
-        content->data = _ffunc_alloc(&csession->pool, len + 1);
+        content->data = (char*) _ffunc_alloc(&csession->pool, len + 1);
         memset(content->data, 0, len + 1);
         content->len = FCGX_GetStr(content->data, len, in);
     }
@@ -356,7 +356,7 @@ hook_socket(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func, 
     }
 
     char port_str[12];
-    ffunc_worker_t *worker_t = malloc(sizeof(ffunc_worker_t));
+    ffunc_worker_t *worker_t = (ffunc_worker_t*) malloc(sizeof(ffunc_worker_t));
     if (worker_t == NULL) {
         perror("nomem");
     }
@@ -516,7 +516,7 @@ ffunc_init(char** ffunc_nmap_func) {
 
         memcpy(dyna_funcs[f].name, ffunc_nmap_func[f], szof_func_name);
 
-        dyna_funcs[f].handle =(h) GetProcAddress(usr_req_handle, ffunc_nmap_func[f]);
+        dyna_funcs[f].handle = (h) GetProcAddress(usr_req_handle, ffunc_nmap_func[f]);
         if (!dyna_funcs[f].handle) {
             FFUNC_ERROR("could not locate the function");
             return EXIT_FAILURE;
@@ -543,7 +543,7 @@ handle_request(FCGX_Request *request) {
     char *value;
 
     ffunc_pool *p = ffunc_create_pool(DEFAULT_BLK_SZ);
-    ffunc_session_t *_csession_ =(ffunc_session_t *) malloc(sizeof(ffunc_session_t));
+    ffunc_session_t *_csession_ = (ffunc_session_t *) malloc(sizeof(ffunc_session_t));
     if (p == NULL || _csession_ == NULL) {
         char err_buff[50];
         strerror_s(err_buff, sizeof err_buff, errno);
@@ -592,7 +592,7 @@ slen(const char* str) {
 int
 ffunc_isspace(const char* s) {
     return (*s == SPACE || *s == TAB || *s == NEW_LINE ||
-        *s == VERTICAL_TAB || *s == FF_FEED || *s == CARRIAGE_RETURN ? 1 : 0);
+            *s == VERTICAL_TAB || *s == FF_FEED || *s == CARRIAGE_RETURN ? 1 : 0);
     // return (*s == '\t' || *s == '\n' ||
     //         *s == '\v' || *s == '\f' || *s == '\r' || *s == ' ' ? 1 : 0);
 }
@@ -626,7 +626,7 @@ ffunc_get_query_param(ffunc_session_t * csession, const char *key, size_t len) {
                 qs = (char*)qs + pos + len;
                 if (*qs++ == '=') {
                     char *src = qs,
-                        *ret;
+                          *ret;
                     size_t sz = 0;
                     while (*qs && *qs++ != '&')sz++;
 
@@ -771,7 +771,7 @@ int ffunc_main2(int sock_port, int backlog, int max_thread, char** ffunc_nmap_fu
         }
     }
     else {
-    SPAWN_CHILD_PROC:
+SPAWN_CHILD_PROC:
         // Setup a console control handler: We stop the server on CTRL-C
         SetConsoleCtrlHandler(console_ctrl_handler, TRUE);
         signal(SIGINT, ffunc_interrupt_handler);
@@ -795,18 +795,18 @@ int ffunc_main2(int sock_port, int backlog, int max_thread, char** ffunc_nmap_fu
 
         spawn_child_cmd_str[i] = '\0';
 
-    FFUNC_WORKER_RESTART:
+FFUNC_WORKER_RESTART:
         if (CreateProcess(
-            NULL,
-            spawn_child_cmd_str, // Child cmd string differentiate by last param
-            NULL,
-            NULL,
-            0,
-            CREATE_NO_WINDOW,
-            NULL,
-            NULL,
-            &si,
-            &g_pi) == 0) {
+                    NULL,
+                    spawn_child_cmd_str, // Child cmd string differentiate by last param
+                    NULL,
+                    NULL,
+                    0,
+                    CREATE_NO_WINDOW,
+                    NULL,
+                    NULL,
+                    &si,
+                    &g_pi) == 0) {
             FFUNC_ERROR("CreateProcess failed\n");
             Sleep(2000);
             ExitProcess(0);
@@ -815,12 +815,12 @@ int ffunc_main2(int sock_port, int backlog, int max_thread, char** ffunc_nmap_fu
         WaitForSingleObject(g_pi.hProcess, INFINITE);
         CloseHandle(g_pi.hProcess);
         CloseHandle(g_pi.hThread);
-		if (GetLastError() != 5) {
-			goto FFUNC_WORKER_RESTART;
-		}
+        if (GetLastError() != 5) {
+            goto FFUNC_WORKER_RESTART;
+        }
     }
-	FFUNC_ERROR("Error: ");
-	Sleep(3000);
+    FFUNC_ERROR("Error: ");
+    Sleep(3000);
     ExitProcess(0);
 
 CONTINUE_CHILD_PROCESS:

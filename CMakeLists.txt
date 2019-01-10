@@ -28,7 +28,7 @@ SET(CMAKE_INSTALL_LIBDIR /usr/local/lib)
 ENDIF (NOT DEFINED CMAKE_INSTALL_LIBDIR)
 
 IF (NOT DEFINED CMAKE_INSTALL_INCLUDEDIR)
-SET(CMAKE_INSTALL_INCLUDEDIR /usr/local/include/ffunc)
+SET(CMAKE_INSTALL_INCLUDEDIR /usr/local/include)
 ENDIF(NOT DEFINED CMAKE_INSTALL_INCLUDEDIR)
 
 MESSAGE(STATUS "ffunc LIBRARY DIRECTORY located at ${CMAKE_INSTALL_LIBDIR}")
@@ -37,7 +37,7 @@ message(STATUS "Current Binary DIRECTORY located at ${CMAKE_CURRENT_BINARY_DIR}"
 
 SET(LIBPATH /usr/lib /usr/local/lib)
 
-include_directories(atomic_hashtable include /usr/local/include)
+include_directories(include /usr/local/include)
 
 add_definitions(-D_XOPEN_SOURCE)
 
@@ -85,13 +85,8 @@ configure_file(
 add_custom_target(uninstall
     COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
 
-SET (INCLUDES include)
-SET (SRCDIR src)
-
-SET (ATOMIC_HASH_DIR atomic_hashtable)
-
-SET (SRCS ${SRCDIR}/ffunc_core.c ${SRCDIR}/ffunc_pool.c ${SRCDIR}/ffunc_buf.c)
-SET (HDRS ${INCLUDES}/ffunc_core.h ${INCLUDES}/ffunc_pool.h ${INCLUDES}/ffunc_buf.h)
+SET (SRCS ffunc.c)
+SET (HDRS ffunc.h)
 
 add_library(${PROJ_FCGIFUNC}.static STATIC ${HDRS} ${SRCS})
 set_target_properties(${PROJ_FCGIFUNC}.static PROPERTIES OUTPUT_NAME ${PROJ_FCGIFUNC})
@@ -126,9 +121,7 @@ install(TARGETS ${PROJ_FCGIFUNC}.static EXPORT ${PROJ_FCGIFUNC}
 		LIBRARY DESTINATION lib${LIB_SUFFIX}
 		# RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 		)
-install(FILES ${INCLUDES}/ffunc_core.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install(FILES ${INCLUDES}/ffunc_buf.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install(FILES ${INCLUDES}/ffunc_pool.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(FILES ffunc.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 # install(TARGETS ffunc EXPORT ffunc DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(CODE "execute_process(COMMAND ldconfig)")
