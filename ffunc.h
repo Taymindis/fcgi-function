@@ -32,8 +32,9 @@ extern "C" {
 #define ALIGNMENT   16
 
 typedef struct pool {
-	void *next,
-	     *end;
+    void *next,
+         *end;
+    struct pool *prev;
 } ffunc_pool;
 
 typedef struct {
@@ -51,6 +52,7 @@ extern ffunc_pool* ffunc_create_pool( size_t size );
 extern void ffunc_destroy_pool( ffunc_pool *p );
 extern void * _ffunc_alloc( ffunc_pool **p, size_t size );
 extern size_t ffunc_mem_left( ffunc_pool *p );
+extern size_t ffunc_mem_used( ffunc_pool *p );
 extern size_t ffunc_blk_size( ffunc_pool *p );
 
 #define FLOGGER_ stderr
@@ -80,7 +82,7 @@ extern void ffunc_print_time(char* buff);
 extern size_t slen(const char* str);
 extern int ffunc_isspace(const char* s);
 
-extern char *duplistr(ffunc_session_t * csession, const char *str);
+extern char *ffunc_strdup(ffunc_session_t * csession, const char *str, size_t len);
 extern int is_empty(char *s);
 
 extern size_t (*ffunc_read_body)(ffunc_session_t * , ffunc_str_t *);

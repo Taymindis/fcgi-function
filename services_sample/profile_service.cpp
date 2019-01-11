@@ -42,7 +42,6 @@ void getProfile(ffunc_session_t * session) {
 		if (out)
 			ffunc_write_out(session, "output= %s\n", out); //cjson undefined because only use it's own file
 	}
-
 }
 
 void postError(ffunc_session_t * session) {

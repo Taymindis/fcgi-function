@@ -24,7 +24,7 @@
 #define ffunc_print(...) fprintf (stderr, __VA_ARGS__)
 
 static void* mem_align(size_t size);
-static ffunc_pool* re_create_pool(ffunc_pool *curr_p, size_t curr_blk_sz, size_t new_size);
+static ffunc_pool* ffunc_recreate_pool(ffunc_pool *curr_p, size_t new_size);
 
 typedef void (*h)(ffunc_session_t*);
 
@@ -93,15 +93,14 @@ ffunc_init(char** ffunc_nmap_func) {
 
 /**To prevent -std=99 issue**/
 char *
-duplistr(ffunc_session_t * csession, const char *str) {
-    int n = strlen(str) + 1;
-    char *dup = (char*)_ffunc_alloc(&csession->pool, n);
-    memset(dup, 0, n);
-    if (dup)
-        memcpy(dup, str, n - 1);
-    // dup[n - 1] = '\0';
-    // please do not put ffunc_print here, it will recurve
-    return dup;
+ffunc_strdup(ffunc_session_t * csession, const char *str, size_t len) {
+    len++;
+    char *dupstr = (char*)_ffunc_alloc(&csession->pool, len);
+    if (dupstr == NULL) {
+        return NULL;
+    }
+    memset(dupstr, 0, len);
+    return memcpy(dup, str, len - 1);
 }
 
 void
@@ -112,7 +111,9 @@ ffunc_print_time(char* buff) {
 
 static void
 handle_request(FCGX_Request *request) {
-    char *value;
+    char *value,
+         *qparam,
+         *query_string;
 
     ffunc_pool *p = ffunc_create_pool(DEFAULT_BLK_SZ);
     ffunc_session_t *_csession_ = (ffunc_session_t*)malloc(sizeof(ffunc_session_t));
@@ -128,11 +129,12 @@ handle_request(FCGX_Request *request) {
         int i;
         for (i = 0; i < func_count; i++) {
             if (strcmp(dyna_funcs[i].name, value) == 0) {
-                char* query_string = duplistr(_csession_, _get_param_("QUERY_STRING"));
-                if (!is_empty(query_string)) {
-                    _csession_->query_str = query_string;//parse_json_fr_args(query_string);
+                if ( ( qparam = _get_param_("QUERY_STRING") ) ) {
+                    query_string = ffunc_strdup(_csession_, qparam, strlen(qparam));
+                    if (!is_empty(query_string)) {
+                        _csession_->query_str = query_string;//parse_json_fr_args(query_string);
+                    }
                 }
-
                 dyna_funcs[i].handle(_csession_);
 
                 goto RELEASE_POOL;
@@ -298,11 +300,13 @@ FFUNC_WORKER_RESTART:
     if (!has_init_signal) {
         ffunc_add_signal_handler();
     }
+    /* TODO do pipe to check is it init application working fine started  */
     childPID = fork();
     if (childPID >= 0) {// fork was successful
         if (childPID == 0) {// child process
+            /* TODO do pipe to check is it init application working fine started  */
             return hook_socket(sock_port, backlog, max_thread, ffunc_nmap_func, app_init_handler);
-        } else {//Parent process
+        } else { // Parent process
             while (1) {
                 if (waitpid(childPID, &child_status, WNOHANG) == childPID) {
                     has_init_signal = 0;
@@ -310,7 +314,6 @@ FFUNC_WORKER_RESTART:
                 }
                 sleep(1);
             }
-
         }
     } else {// fork failed
         ffunc_print("%s\n", "Fork Child failed..");
@@ -450,7 +453,7 @@ ffunc_add_signal_handler() {
 
 
 static void* mem_align(size_t size);
-static ffunc_pool* re_create_pool(ffunc_pool *curr_p, size_t curr_blk_sz, size_t new_size);
+static ffunc_pool* ffunc_recreate_pool(ffunc_pool *curr_p, size_t new_size);
 typedef void(*h)(ffunc_session_t*);
 
 struct ffunc_handler {
@@ -527,20 +530,21 @@ ffunc_init(char** ffunc_nmap_func) {
 
 /**To prevent -std=99 issue**/
 char *
-duplistr(ffunc_session_t * csession, const char *str) {
-    int n = strlen(str) + 1;
-    char *dup = _ffunc_alloc(&csession->pool, n);
-    memset(dup, 0, n);
-    if (dup)
-        memcpy(dup, str, n - 1);
-    // dup[n - 1] = '\0';
-    // please do not put ffunc_print here, it will recurve
-    return dup;
+ffunc_strdup(ffunc_session_t * csession, const char *str, size_t len) {
+    len++;
+    char *dupstr = (char*)_ffunc_alloc(&csession->pool, len);
+    if (dupstr == NULL) {
+        return NULL;
+    }
+    memset(dupstr, 0, len);
+    return memcpy(dup, str, len - 1);
 }
 
 static void
 handle_request(FCGX_Request *request) {
-    char *value;
+    char *value,
+         *qparam,
+         *query_string;
 
     ffunc_pool *p = ffunc_create_pool(DEFAULT_BLK_SZ);
     ffunc_session_t *_csession_ = (ffunc_session_t *) malloc(sizeof(ffunc_session_t));
@@ -558,11 +562,12 @@ handle_request(FCGX_Request *request) {
         int i;
         for (i = 0; i < func_count; i++) {
             if (strcmp(dyna_funcs[i].name, value) == 0) {
-                char* query_string = duplistr(_csession_, _get_param_("QUERY_STRING"));
-                if (!is_empty(query_string)) {
-                    _csession_->query_str = query_string;//parse_json_fr_args(query_string);
+                if ( ( qparam = _get_param_("QUERY_STRING") ) ) {
+                    query_string = ffunc_strdup(_csession_, qparam, strlen(qparam));
+                    if (!is_empty(query_string)) {
+                        _csession_->query_str = query_string;//parse_json_fr_args(query_string);
+                    }
                 }
-
                 dyna_funcs[i].handle(_csession_);
 
                 goto RELEASE_POOL;
@@ -942,18 +947,14 @@ ffunc_write_json_header(ffunc_session_t * csession) {
     ffunc_write_out(csession, "Content-Type: application/json\r\n\r\n");
 }
 
-ffunc_pool*
-ffunc_create_pool( size_t size ) {
-    ffunc_pool * p = (ffunc_pool*)mem_align(size + sizeof(ffunc_pool));
-    p->next = (void*)&p[1]; //p + sizeof(ffunc_pool)
-    p->end = (void*)((uintptr_t)p->next + size);
-    return p;    // p->memblk = //mem_align( 16, DEFAULT_BLK_SZ);
-}
-
 void
 ffunc_destroy_pool( ffunc_pool *p ) {
-    if (p)
+    if (p) {
+        if (p->prev) {
+            ffunc_destroy_pool(p->prev);
+        }
         free(p);
+    }
 }
 
 size_t
@@ -962,44 +963,13 @@ ffunc_mem_left( ffunc_pool *p ) {
 }
 
 size_t
+ffunc_mem_used( ffunc_pool *p ) {
+    return (uintptr_t) p->next - (uintptr_t) &p[1];
+}
+
+size_t
 ffunc_blk_size( ffunc_pool *p ) {
     return (uintptr_t) p->end - (uintptr_t) (void*)&p[1];
-}
-
-void *
-_ffunc_alloc( ffunc_pool **p, size_t size ) {
-    ffunc_pool *curr_p = *p;
-    if ( ffunc_mem_left(curr_p) < size ) {
-        size_t curr_blk_sz = ffunc_blk_size(curr_p);
-        size_t new_size = curr_blk_sz * 2;
-
-        while ( new_size < size) {
-            new_size *= 2;
-        }
-
-        *p = curr_p = (ffunc_pool*)re_create_pool(curr_p, curr_blk_sz, new_size);
-    }
-    void *mem = (void*)curr_p->next;
-    curr_p->next = (void*) ((uintptr_t)curr_p->next +  size); // alloc new memory
-    // memset(curr_p->next, 0, 1); // split for next
-
-    return mem;
-}
-
-static ffunc_pool*
-re_create_pool( ffunc_pool *curr_p, size_t curr_blk_sz, size_t new_size) {
-    ffunc_pool *newp = NULL;
-    if (curr_p) {
-        // ffunc_print("%s\n", "Recreate Pool");
-        newp = (ffunc_pool*)mem_align(sizeof(ffunc_pool) + new_size);
-        memcpy((void*)newp, (void*)curr_p, sizeof(ffunc_pool));
-        memcpy((void*)&newp[1], (void*)&curr_p[1], curr_blk_sz);
-        newp->next = (void*)&newp[1]; //p + sizeof(ffunc_pool)
-        newp->end =  (void*)((uintptr_t)newp->next + new_size);
-        newp->next = (void*) ((uintptr_t) newp->next + curr_blk_sz);
-        ffunc_destroy_pool(curr_p);
-    }
-    return newp;
 }
 
 static void*
@@ -1016,10 +986,52 @@ mem_align(size_t size) //alignment => 16
     ffunc_print("posix_memalign: %p:%uz @%uz \n", p, size, ALIGNMENT);
 #else
     // ffunc_print("%s\n", "Using Malloc");
-    p = malloc(size + sizeof(ffunc_pool));
+    p = malloc(size);
 
 #endif
     return p;
+}
+
+
+ffunc_pool*
+ffunc_create_pool( size_t size ) {
+    ffunc_pool * p = (ffunc_pool*)mem_align(size + sizeof(ffunc_pool));
+    p->next = (void*)&p[1]; //p + sizeof(ffunc_pool)
+    p->end = (void*)((uintptr_t)p->next + size);
+    p->prev = NULL;
+    return p;    // p->memblk = //mem_align( 16, DEFAULT_BLK_SZ);
+}
+
+static ffunc_pool*
+ffunc_recreate_pool( ffunc_pool *curr_p, size_t new_size) {
+    ffunc_pool *newp = NULL;
+    if (curr_p) {
+        newp = (ffunc_pool*)ffunc_create_pool(new_size);
+        curr_p->next = newp->next;
+        curr_p->end = newp->end;
+        newp->prev = curr_p;
+    }
+    return newp;
+}
+
+void *
+_ffunc_alloc( ffunc_pool **p, size_t size ) {
+    ffunc_pool *curr_p = *p;
+    if ( ffunc_mem_left(curr_p) < size ) {
+        size_t curr_blk_sz = ffunc_blk_size(curr_p);
+        size_t new_size = curr_blk_sz * 2;
+
+        while ( new_size < size) {
+            new_size *= 2;
+        }
+
+        *p = curr_p = ffunc_recreate_pool(curr_p, new_size);
+    }
+    void *mem = (void*)curr_p->next;
+    curr_p->next = (void*) ((uintptr_t)curr_p->next +  size); // alloc new memory
+    // memset(curr_p->next, 0, 1); // split for next
+
+    return mem;
 }
 
 
