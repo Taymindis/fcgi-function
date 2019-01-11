@@ -30,6 +30,7 @@ typedef void (*h)(ffunc_session_t*);
 
 struct ffunc_handler {
     char* name;
+    size_t len;
     h handle;
 };
 
@@ -46,7 +47,7 @@ static size_t max_std_input_buffer;
 static int ffunc_init(char** ffunc_nmap_func);
 int strpos(const char *haystack, const char *needle);
 void *ffunc_thread_worker(void* wrker);
-static int hook_socket(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func, void (*app_init_handler)(void) );
+static int hook_socket(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func);
 static void ffunc_add_signal_handler(void);
 static void handle_request(FCGX_Request *request);
 static size_t ffunc_read_body_limit(ffunc_session_t * csession, ffunc_str_t *content);
@@ -79,6 +80,7 @@ ffunc_init(char** ffunc_nmap_func) {
         dyna_funcs[f].name = (char*) calloc(szof_func_name + 1, sizeof(char));
 
         memcpy(dyna_funcs[f].name, ffunc_nmap_func[f], szof_func_name);
+        dyna_funcs[f].len = szof_func_name;
 
         *(void **) (&dyna_funcs[f].handle) = dlsym(usr_req_handle, ffunc_nmap_func[f]);
 
@@ -94,13 +96,15 @@ ffunc_init(char** ffunc_nmap_func) {
 /**To prevent -std=99 issue**/
 char *
 ffunc_strdup(ffunc_session_t * csession, const char *str, size_t len) {
-    len++;
-    char *dupstr = (char*)_ffunc_alloc(&csession->pool, len);
+    if (len == 0 ) {
+        return NULL;
+    }
+    char *dupstr = (char*)_ffunc_alloc(&csession->pool, len + 1);
     if (dupstr == NULL) {
         return NULL;
     }
-    memset(dupstr, 0, len);
-    return memcpy(dup, str, len - 1);
+    memset(dupstr, 0, len + 1);
+    return memcpy(dupstr, str, len);
 }
 
 void
@@ -127,8 +131,9 @@ handle_request(FCGX_Request *request) {
 
     if ( (value = FCGX_GetParam("FN_HANDLER", request->envp)) ) {
         int i;
+        size_t vallen = strlen(value);
         for (i = 0; i < func_count; i++) {
-            if (strcmp(dyna_funcs[i].name, value) == 0) {
+            if ( dyna_funcs[i].len == vallen && (strcmp(dyna_funcs[i].name, value) == 0) ) {
                 if ( ( qparam = _get_param_("QUERY_STRING") ) ) {
                     query_string = ffunc_strdup(_csession_, qparam, strlen(qparam));
                     if (!is_empty(query_string)) {
@@ -271,6 +276,11 @@ ffunc_read_body_limit(ffunc_session_t * csession, ffunc_str_t *content) {
     return len;
 }
 
+
+#define FFUNC_APP_INITIALIZING "INIT"
+#define FFUNC_APP_INITIALIZED "DONE"
+#define FFUNC_APP_INIT_PIPE_BUF_SIZE sizeof(FFUNC_APP_INITIALIZED)
+
 /**Main api**/
 int
 ffunc_main(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func, void (*app_init_handler)(void)) {
@@ -281,6 +291,9 @@ int
 ffunc_main2(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func, void (*app_init_handler)(void), size_t max_read_buffer) {
     pid_t childPID;
     int child_status;
+    int procpip[2];
+    char pipbuf[FFUNC_APP_INIT_PIPE_BUF_SIZE];
+
     if (max_read_buffer > 0) {
         max_std_input_buffer = max_read_buffer;
         ffunc_read_body = &ffunc_read_body_limit;
@@ -295,22 +308,41 @@ ffunc_main2(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func, 
 
     ffunc_print("%s\n", "Service starting");
     ffunc_print("sock_port=%d, backlog=%d\n", sock_port, backlog);
+    /** Do master pipe before fork **/
+    if (pipe(procpip) < 0)
+        exit(1);
 
 FFUNC_WORKER_RESTART:
     if (!has_init_signal) {
         ffunc_add_signal_handler();
     }
-    /* TODO do pipe to check is it init application working fine started  */
+    write(procpip[1], FFUNC_APP_INITIALIZING, FFUNC_APP_INIT_PIPE_BUF_SIZE);
     childPID = fork();
     if (childPID >= 0) {// fork was successful
         if (childPID == 0) {// child process
-            /* TODO do pipe to check is it init application working fine started  */
-            return hook_socket(sock_port, backlog, max_thread, ffunc_nmap_func, app_init_handler);
+            if (app_init_handler) {
+                app_init_handler();
+            }
+            read(procpip[0], pipbuf, FFUNC_APP_INIT_PIPE_BUF_SIZE);
+            write(procpip[1], FFUNC_APP_INITIALIZED, FFUNC_APP_INIT_PIPE_BUF_SIZE);
+            close(procpip[0]);
+            close(procpip[1]);
+
+            return hook_socket(sock_port, backlog, max_thread, ffunc_nmap_func);
         } else { // Parent process
             while (1) {
                 if (waitpid(childPID, &child_status, WNOHANG) == childPID) {
                     has_init_signal = 0;
-                    goto FFUNC_WORKER_RESTART;
+                    if ( read(procpip[0], pipbuf, FFUNC_APP_INIT_PIPE_BUF_SIZE) > 0 ) {
+                        if ( strncmp(pipbuf, FFUNC_APP_INITIALIZED, FFUNC_APP_INIT_PIPE_BUF_SIZE) == 0 ) {
+                            goto FFUNC_WORKER_RESTART;
+                        } else {
+                            printf("%s\n", "Failed while initializing the application... ");
+                            close(procpip[0]);
+                            close(procpip[1]);
+                            return 1; // ERROR
+                        }
+                    }
                 }
                 sleep(1);
             }
@@ -349,10 +381,7 @@ ffunc_thread_worker(void* wrker) {
 }
 
 static int
-hook_socket(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func, void (*app_init_handler)(void)) {
-    if (app_init_handler) {
-        app_init_handler();
-    }
+hook_socket(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func) {
     FCGX_Init();
     if (!ffunc_init(ffunc_nmap_func)) {
         exit(1);
@@ -458,6 +487,7 @@ typedef void(*h)(ffunc_session_t*);
 
 struct ffunc_handler {
     char* name;
+    size_t len;
     h handle;
 };
 
@@ -474,7 +504,7 @@ static size_t max_std_input_buffer;
 static int ffunc_init(char** ffunc_nmap_func);
 int strpos(const char *haystack, const char *needle);
 unsigned __stdcall ffunc_thread_worker(void *wrker);
-static int hook_socket(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func, void(*app_init_handler)(void));
+static int hook_socket(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func);
 static void ffunc_add_signal_handler(void);
 static void handle_request(FCGX_Request *request);
 static size_t ffunc_read_body_limit(ffunc_session_t * csession, ffunc_str_t *content);
@@ -518,6 +548,7 @@ ffunc_init(char** ffunc_nmap_func) {
         dyna_funcs[f].name = calloc(szof_func_name + 1, sizeof(char));
 
         memcpy(dyna_funcs[f].name, ffunc_nmap_func[f], szof_func_name);
+        dyna_funcs[f].len = szof_func_name;
 
         dyna_funcs[f].handle = (h) GetProcAddress(usr_req_handle, ffunc_nmap_func[f]);
         if (!dyna_funcs[f].handle) {
@@ -531,13 +562,15 @@ ffunc_init(char** ffunc_nmap_func) {
 /**To prevent -std=99 issue**/
 char *
 ffunc_strdup(ffunc_session_t * csession, const char *str, size_t len) {
-    len++;
-    char *dupstr = (char*)_ffunc_alloc(&csession->pool, len);
+    if (len == 0 ) {
+        return NULL;
+    }
+    char *dupstr = (char*)_ffunc_alloc(&csession->pool, len + 1);
     if (dupstr == NULL) {
         return NULL;
     }
-    memset(dupstr, 0, len);
-    return memcpy(dup, str, len - 1);
+    memset(dupstr, 0, len + 1);
+    return memcpy(dupstr, str, len);
 }
 
 static void
@@ -560,8 +593,9 @@ handle_request(FCGX_Request *request) {
 
     if ((value = FCGX_GetParam("FN_HANDLER", request->envp))) {
         int i;
+        size_t vallen = strlen(value);
         for (i = 0; i < func_count; i++) {
-            if (strcmp(dyna_funcs[i].name, value) == 0) {
+            if ( dyna_funcs[i].len == vallen && (strcmp(dyna_funcs[i].name, value) == 0) ) {
                 if ( ( qparam = _get_param_("QUERY_STRING") ) ) {
                     query_string = ffunc_strdup(_csession_, qparam, strlen(qparam));
                     if (!is_empty(query_string)) {

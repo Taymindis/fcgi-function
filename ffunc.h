@@ -25,16 +25,16 @@ extern "C" {
 #include <fcgiapp.h>
 #endif
 
-#ifndef __APPLE__	
+#ifndef __APPLE__
 #include <malloc.h>
 #endif
 #define DEFAULT_BLK_SZ 2048
 #define ALIGNMENT   16
 
 typedef struct pool {
-    void *next,
-         *end;
-    struct pool *prev;
+	void *next,
+	     *end;
+	struct pool *prev;
 } ffunc_pool;
 
 typedef struct {
@@ -66,6 +66,38 @@ extern size_t ffunc_blk_size( ffunc_pool *p );
 
 static const char AMPERSAND_DELIM = '&';
 static const char EQ_DELIM = '=';
+
+
+extern int ffunc_main(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func, void (*app_init_handler)(void));
+extern int ffunc_main2(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func, void (*app_init_handler)(void), size_t max_read_buffer);
+
+#ifdef __cplusplus
+#include <vector>
+static int ffunc_mainpp(int sock_port, int backlog, int max_thread, std::vector<std::string> ffunc_nmap_func, void (*app_init_handler)(void)) {
+	if (ffunc_nmap_func.size() > 0)  {
+		char ** ffunc_nmap_func_c =(char**) malloc( (ffunc_nmap_func.size() + 1) * sizeof(char*) );
+		int i;
+		for (i = 0; i < ffunc_nmap_func.size(); i++) {
+			ffunc_nmap_func_c[i] = (char*) ffunc_nmap_func[i].c_str();
+		}
+		ffunc_nmap_func_c[i] = NULL;
+		return ffunc_main2(sock_port, backlog, max_thread, ffunc_nmap_func_c, app_init_handler, 0);
+	}
+	return 1; // error
+}
+static int ffunc_mainpp2(int sock_port, int backlog, int max_thread, std::vector<std::string> ffunc_nmap_func, void (*app_init_handler)(void), size_t max_read_buffer) {
+	if (ffunc_nmap_func.size() > 0)  {
+		char ** ffunc_nmap_func_c =(char**) malloc( (ffunc_nmap_func.size() + 1) * sizeof(char*) );
+		int i;
+		for (i = 0; i < ffunc_nmap_func.size(); i++) {
+			ffunc_nmap_func_c[i] = (char*) ffunc_nmap_func[i].c_str();
+		}
+		ffunc_nmap_func_c[i] = NULL;
+		return ffunc_main2(sock_port, backlog, max_thread, ffunc_nmap_func_c, app_init_handler, max_read_buffer);
+	}
+	return 1; // error
+}
+#endif
 
 extern int ffunc_main(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func, void (*app_init_handler)(void));
 extern int ffunc_main2(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func, void (*app_init_handler)(void), size_t max_read_buffer);
