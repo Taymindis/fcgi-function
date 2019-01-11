@@ -4,6 +4,7 @@
 #define _GNU_SOURCE
 #endif
 #ifdef __cplusplus
+#include <vector>
 extern "C" {
 #endif
 
@@ -71,12 +72,13 @@ static const char EQ_DELIM = '=';
 extern int ffunc_main(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func, void (*app_init_handler)(void));
 extern int ffunc_main2(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func, void (*app_init_handler)(void), size_t max_read_buffer);
 
+
+
 #ifdef __cplusplus
-#include <vector>
 static int ffunc_mainpp(int sock_port, int backlog, int max_thread, std::vector<std::string> ffunc_nmap_func, void (*app_init_handler)(void)) {
 	if (ffunc_nmap_func.size() > 0)  {
 		char ** ffunc_nmap_func_c =(char**) malloc( (ffunc_nmap_func.size() + 1) * sizeof(char*) );
-		int i;
+		unsigned int i;
 		for (i = 0; i < ffunc_nmap_func.size(); i++) {
 			ffunc_nmap_func_c[i] = (char*) ffunc_nmap_func[i].c_str();
 		}
@@ -88,7 +90,7 @@ static int ffunc_mainpp(int sock_port, int backlog, int max_thread, std::vector<
 static int ffunc_mainpp2(int sock_port, int backlog, int max_thread, std::vector<std::string> ffunc_nmap_func, void (*app_init_handler)(void), size_t max_read_buffer) {
 	if (ffunc_nmap_func.size() > 0)  {
 		char ** ffunc_nmap_func_c =(char**) malloc( (ffunc_nmap_func.size() + 1) * sizeof(char*) );
-		int i;
+		unsigned int i;
 		for (i = 0; i < ffunc_nmap_func.size(); i++) {
 			ffunc_nmap_func_c[i] = (char*) ffunc_nmap_func[i].c_str();
 		}

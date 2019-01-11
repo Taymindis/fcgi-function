@@ -4,7 +4,7 @@
 /*Compile*/
 /*gcc profile_service.c -I../ ../ffunc.c -lfcgi -pthread -ldl -rdynamic*/
 static int req_count = 0;
-void getProfile(ffunc_session_t * session) {
+FFUNC getProfile(ffunc_session_t * session) {
 	ffunc_write_out(session, "Status: 200 OK\r\n");
 	ffunc_write_out(session, "Content-Type: text/plain\r\n\r\n");/* \r\n\r\n  means go to response message*/
 	ffunc_write_out(session, "%s\n", "you are here");
@@ -19,14 +19,14 @@ void getProfile(ffunc_session_t * session) {
 	}
 }
 
-void postError(ffunc_session_t * session) {
+FFUNC postError(ffunc_session_t * session) {
 	printf("%s\n", "you reach here with post Error test");
 	ffunc_write_out(session, "Status: 500 Internal Server Error\r\n");
 	ffunc_write_out(session, "Content-Type: text/plain\r\n\r\n");
 	ffunc_write_out(session, "%s\n", "you hitting error");
 }
 
-void postProfile(ffunc_session_t * session) {
+FFUNC postProfile(ffunc_session_t * session) {
 	// not need to free, csession handle it
 	ffunc_str_t payload;
 	if( ffunc_read_body(session, &payload) ) {

@@ -799,10 +799,13 @@ int ffunc_main2(int sock_port, int backlog, int max_thread, char** ffunc_nmap_fu
     SIZE_T cmd_len = ffunc_cmdlen(cmd_str);
     SIZE_T childcmd_len = ffunc_cmdlen(child_cmd_str);
     SIZE_T spawn_child_cmd_len = cmd_len + childcmd_len + 1; // 1 for NULL terminator
-    // goto CONTINUE_CHILD_PROCESS;
+ //    goto CONTINUE_CHILD_PROCESS;
     if (cmd_len > childcmd_len) {
         FFUNCCMD_CHAR *p_cmd_str = cmd_str + cmd_len - sizeof("ffunc-child-proc");
         if (ffunc_cmdstrstr(p_cmd_str, child_cmd_str)) {
+			if (app_init_handler) {
+				app_init_handler();
+			}
             goto CONTINUE_CHILD_PROCESS;
         }
         else {
@@ -863,7 +866,7 @@ FFUNC_WORKER_RESTART:
     ExitProcess(0);
 
 CONTINUE_CHILD_PROCESS:
-    return hook_socket(sock_port, backlog, max_thread, ffunc_nmap_func, app_init_handler);
+    return hook_socket(sock_port, backlog, max_thread, ffunc_nmap_func);
 
 }
 
@@ -893,10 +896,7 @@ ffunc_thread_worker(void* wrker) {
 }
 
 static int
-hook_socket(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func, void(*app_init_handler)(void)) {
-    if (app_init_handler) {
-        app_init_handler();
-    }
+hook_socket(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func) {
     FCGX_Init();
     if (!ffunc_init(ffunc_nmap_func)) {
         exit(1);

@@ -37,7 +37,7 @@ void init_logger_in_instance() {
 	// file_logger->set_pattern("%v"); // Just message
 }
 
-void getProfile(ffunc_session_t * session) {
+FFUNC getProfile(ffunc_session_t * session) {
 	file_logger->info("%s\n", "you reach here with get Request");
 	ffunc_write_out(session, "Status: 200 OK\r\n");
 	ffunc_write_out(session, "Content-Type: text/plain\r\n\r\n");/* \r\n\r\n  means go to response message*/
@@ -55,7 +55,7 @@ void getProfile(ffunc_session_t * session) {
 
 }
 
-void postError(ffunc_session_t * session) {
+FFUNC postError(ffunc_session_t * session) {
 	file_logger->info("%s\n", "you reach here with post Error test");
 	ffunc_write_out(session, "Status: 500 Internal Server Error\r\n");
 	ffunc_write_out(session, "Content-Type: text/plain\r\n\r\n");
@@ -63,7 +63,7 @@ void postError(ffunc_session_t * session) {
 }
 
 
-void postProfile(ffunc_session_t * session) {
+FFUNC postProfile(ffunc_session_t * session) {
 	// not need to free, session handle it
 	ffunc_str_t payload;
 	if(ffunc_read_body(session, &payload) ) {
