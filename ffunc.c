@@ -803,9 +803,9 @@ int ffunc_main2(int sock_port, int backlog, int max_thread, char** ffunc_nmap_fu
     if (cmd_len > childcmd_len) {
         FFUNCCMD_CHAR *p_cmd_str = cmd_str + cmd_len - sizeof("ffunc-child-proc");
         if (ffunc_cmdstrstr(p_cmd_str, child_cmd_str)) {
-			if (app_init_handler) {
-				app_init_handler();
-			}
+            if (app_init_handler) {
+                app_init_handler();
+            }
             goto CONTINUE_CHILD_PROCESS;
         }
         else {
