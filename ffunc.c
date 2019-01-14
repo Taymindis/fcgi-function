@@ -224,11 +224,16 @@ ffunc_read_body_limit(ffunc_session_t * csession, ffunc_str_t *content) {
 
 /**Main Hook**/
 int
-ffunc_hook(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func, void(*app_init_handler)(void), size_t max_read_buffer) {
-    pid_t childPID;
+ffunc_hook(ffunc_config_t *conf) {
+    pid_t child_pid, daemon_pid;
     int child_status;
     int procpip[2];
     char pipbuf[FFUNC_APP_INIT_PIPE_BUF_SIZE];
+    int sock_port = conf->sock_port;
+    int backlog = conf->backlog;
+    int max_thread = conf->max_thread;
+    char** ffunc_nmap_func = conf->ffunc_nmap_func;
+    size_t max_read_buffer = conf->max_read_buffer;
 
     if (max_read_buffer > 0) {
         max_std_input_buffer = max_read_buffer;
@@ -265,17 +270,33 @@ ffunc_hook(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func, v
         exit(1);
 
 FFUNC_WORKER_RESTART:
+    if (conf->daemon) {
+        daemon_pid = fork();
+
+        /* An error occurred */
+        if (daemon_pid < 0)
+            exit(EXIT_FAILURE);
+
+        /* Success: Let the parent terminate */
+        if (daemon_pid > 0)
+            exit(EXIT_SUCCESS);
+
+        /* On success: The child process becomes session leader */
+        if (setsid() < 0)
+            exit(EXIT_FAILURE);
+    }
+
     if (!has_init_signal) {
         ffunc_add_signal_handler();
     }
     write(procpip[1], FFUNC_APP_INITIALIZING, FFUNC_APP_INIT_PIPE_BUF_SIZE);
-    childPID = fork();
-    if (childPID >= 0) {// fork was successful
-        if (childPID == 0) {// child process
+    child_pid = fork();
+    if (child_pid >= 0) {// fork was successful
+        if (child_pid == 0) {// child process
             char *swap_name = (ffunc_proc_name.data + ffunc_proc_name.len) - (sizeof(_FFUNC_MASTER_) - 1);
             memcpy(swap_name, _FFUNC_WORKER_, (sizeof(_FFUNC_MASTER_) - 1));
-            if (app_init_handler) {
-                app_init_handler();
+            if (conf->app_init_handler) {
+                conf->app_init_handler();
             }
             read(procpip[0], pipbuf, FFUNC_APP_INIT_PIPE_BUF_SIZE);
             write(procpip[1], FFUNC_APP_INITIALIZED, FFUNC_APP_INIT_PIPE_BUF_SIZE);
@@ -286,7 +307,7 @@ FFUNC_WORKER_RESTART:
         }
         else { // Parent process
             while (1) {
-                if (waitpid(childPID, &child_status, WNOHANG) == childPID) {
+                if (waitpid(child_pid, &child_status, WNOHANG) == child_pid) {
                     has_init_signal = 0;
                     if (read(procpip[0], pipbuf, FFUNC_APP_INIT_PIPE_BUF_SIZE) > 0) {
                         if (strncmp(pipbuf, FFUNC_APP_INITIALIZED, FFUNC_APP_INIT_PIPE_BUF_SIZE) == 0) {
@@ -439,7 +460,7 @@ main(int argc, char *argv[]) {
         ffunc_proc_name.len = strlen(argv[0]);
 
         if ((status = ffunc_main(argc, argv, conf)) == 0) {
-            return ffunc_hook(conf->sock_port, conf->backlog, conf->max_thread, conf->ffunc_nmap_func, conf->app_init_handler, conf->max_read_buffer);
+            return ffunc_hook(conf);
         } else {
             fprintf(stderr, "Error status %d, status return is not successful(0) \n", status);
             return status;
@@ -500,7 +521,7 @@ char* getenv_secure(char const* _VarName) {
 #define _FFUNC_MASTER_ENV "_ffunc-master_" __TIME__
 #define FFUNC_SETENV setenv
 #define FFUNC_GETENV(varname) getenv_secure(varname)
-#define FFUNC_EXECVE _execve
+#define FFUNC_EXECVE _spawnve
 #define _FFUNC_MASTER_ "_ffunc-master"
 #define _FFUNC_WORKER_ "_ffunc-worker"
 
@@ -833,7 +854,7 @@ SPAWN_CHILD_PROC:
 
 FFUNC_WORKER_RESTART:
     if (exec_name) {
-        ffunc_spawn_child(_P_WAIT, exec_name, argv, environ);
+        FFUNC_EXECVE(_P_WAIT, exec_name, argv, environ);
         goto FFUNC_WORKER_RESTART;
     }
     else {
@@ -851,10 +872,8 @@ CONTINUE_CHILD_PROCESS:
     ffunc_print("Socket port on hook %d\n", sock_port);
     ffunc_print("backlog=%d\n", backlog);
     ffunc_print("%d threads \n", max_thread);
-
     fprintf(stderr, "%s\n", "Press Ctrl-C to terminate the process....");
     return hook_socket(sock_port, backlog, max_thread, ffunc_nmap_func);
-
 }
 
 unsigned __stdcall
@@ -1007,7 +1026,7 @@ main(int argc, char *argv[]) {
 
         new_argv[i] = NULL;
         extern char **environ;
-        FFUNC_EXECVE(argv[0], new_argv, environ);
+        FFUNC_EXECVE(_P_NOWAIT, argv[0], new_argv, environ);
     }
     return 0;
 }

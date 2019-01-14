@@ -54,8 +54,12 @@ typedef struct {
 	int backlog;
 	int max_thread;
 	char** ffunc_nmap_func;
-	void(*app_init_handler)(void);
 	size_t max_read_buffer;
+
+#if defined __GNUC__ || defined __CYGWIN__ || defined __MINGW32__ || defined __APPLE__
+	void(*app_init_handler)(void);
+	int daemon;
+#endif
 
 	/* DO NOT USE THE VARIABLE BELOW */
 	char* __exec_name;
