@@ -34,7 +34,7 @@ extern "C" {
 
 typedef struct pool {
 	void *next,
-	     *end;
+		*end;
 	struct pool *prev;
 } ffunc_pool;
 
@@ -49,77 +49,45 @@ typedef struct {
 	size_t len;
 } ffunc_str_t;
 
-extern ffunc_pool* ffunc_create_pool( size_t size );
-extern void ffunc_destroy_pool( ffunc_pool *p );
-extern void * _ffunc_alloc( ffunc_pool **p, size_t size );
-extern size_t ffunc_mem_left( ffunc_pool *p );
-extern size_t ffunc_mem_used( ffunc_pool *p );
-extern size_t ffunc_blk_size( ffunc_pool *p );
+typedef struct {
+	int sock_port;
+	int backlog;
+	int max_thread;
+	char** ffunc_nmap_func;
+	void(*app_init_handler)(void);
+	size_t max_read_buffer;
 
-#define FLOGGER_ stderr
+	/* DO NOT USE THE VARIABLE BELOW */
+	char* __exec_name;
+} ffunc_config_t;
 
-#define SPACE (0x20)
-#define TAB  (0x09)
-#define NEW_LINE  (0x0a)
-#define VERTICAL_TAB  (0x0b)
-#define FF_FEED  (0x0c)
-#define CARRIAGE_RETURN  (0x0d)
+extern ffunc_pool* ffunc_create_pool(size_t size);
+extern void ffunc_destroy_pool(ffunc_pool *p);
+extern void * _ffunc_alloc(ffunc_pool **p, size_t size);
+extern size_t ffunc_mem_left(ffunc_pool *p);
+extern size_t ffunc_mem_used(ffunc_pool *p);
+extern size_t ffunc_blk_size(ffunc_pool *p);
 
-static const char AMPERSAND_DELIM = '&';
-static const char EQ_DELIM = '=';
+#define ffunc_parse_function(ffconf_, ...) do { \
+const char *_ffunc_nmap_func[] = {__VA_ARGS__, NULL}; \
+unsigned int i=0, j; \
+while(_ffunc_nmap_func[i])i++; \
+(ffconf_)->ffunc_nmap_func = (char**) calloc(i+1, sizeof(char*) ); \
+for(j=0;j<i;j++) { \
+size_t len = 1+strlen(_ffunc_nmap_func[j]); \
+char *x =(char*) malloc(len); \
+(ffconf_)->ffunc_nmap_func[j] = (char*) (x ? memcpy(x, _ffunc_nmap_func[j], len) : NULL); \
+} \
+(ffconf_)->ffunc_nmap_func[i] = NULL; \
+} while(0)
 
-
-extern int ffunc_main(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func, void (*app_init_handler)(void));
-extern int ffunc_main2(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func, void (*app_init_handler)(void), size_t max_read_buffer);
-
-
-
-#ifdef __cplusplus
-static int ffunc_mainpp(int sock_port, int backlog, int max_thread, std::vector<std::string> ffunc_nmap_func, void (*app_init_handler)(void)) {
-	if (ffunc_nmap_func.size() > 0)  {
-		char ** ffunc_nmap_func_c =(char**) malloc( (ffunc_nmap_func.size() + 1) * sizeof(char*) );
-		unsigned int i;
-		for (i = 0; i < ffunc_nmap_func.size(); i++) {
-			ffunc_nmap_func_c[i] = (char*) ffunc_nmap_func[i].c_str();
-		}
-		ffunc_nmap_func_c[i] = NULL;
-		return ffunc_main2(sock_port, backlog, max_thread, ffunc_nmap_func_c, app_init_handler, 0);
-	}
-	return 1; // error
-}
-static int ffunc_mainpp2(int sock_port, int backlog, int max_thread, std::vector<std::string> ffunc_nmap_func, void (*app_init_handler)(void), size_t max_read_buffer) {
-	if (ffunc_nmap_func.size() > 0)  {
-		char ** ffunc_nmap_func_c =(char**) malloc( (ffunc_nmap_func.size() + 1) * sizeof(char*) );
-		unsigned int i;
-		for (i = 0; i < ffunc_nmap_func.size(); i++) {
-			ffunc_nmap_func_c[i] = (char*) ffunc_nmap_func[i].c_str();
-		}
-		ffunc_nmap_func_c[i] = NULL;
-		return ffunc_main2(sock_port, backlog, max_thread, ffunc_nmap_func_c, app_init_handler, max_read_buffer);
-	}
-	return 1; // error
-}
-#endif
-
-extern int ffunc_main(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func, void (*app_init_handler)(void));
-extern int ffunc_main2(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func, void (*app_init_handler)(void), size_t max_read_buffer);
-extern int ffunc_file_existd(const char* fname);
-extern void ffunc_print_time(char* buff);
-
+extern int ffunc_main(int argc, char *argv[], ffunc_config_t *ffunc_conf);
 #define ffunc_write_out(_csession, ...) FCGX_FPrintF(_csession->request->out, __VA_ARGS__)
 #define ffunc_get_fcgi_param(_csession, constkey) FCGX_GetParam(constkey, _csession->request->envp)
 #define ffunc_alloc(ffunc_session_t, sz) _ffunc_alloc(&ffunc_session_t->pool, sz)
-#define ffunc_pool_sz(ffunc_session_t) blk_size(ffunc_session_t->pool)
-#define STRINGIFY(x) #x
-#define STR(x) STRINGIFY(x)
-
-extern size_t slen(const char* str);
-extern int ffunc_isspace(const char* s);
-
 extern char *ffunc_strdup(ffunc_session_t * csession, const char *str, size_t len);
-extern int is_empty(char *s);
 
-extern size_t (*ffunc_read_body)(ffunc_session_t * , ffunc_str_t *);
+extern size_t(*ffunc_read_body)(ffunc_session_t *, ffunc_str_t *);
 extern void* ffunc_get_query_param(ffunc_session_t * csession, const char *key, size_t len);
 extern void ffunc_write_http_ok_status(ffunc_session_t * csession);
 extern void ffunc_write_http_not_found_status(ffunc_session_t * csession);

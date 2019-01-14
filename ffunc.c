@@ -23,10 +23,20 @@
 #define _get_param_(KEY) FCGX_GetParam(KEY, request->envp)
 #define ffunc_print(...) fprintf (stderr, __VA_ARGS__)
 
-static void* mem_align(size_t size);
-static ffunc_pool* ffunc_recreate_pool(ffunc_pool *curr_p, size_t new_size);
+#define _FFUNC_MASTER_ENV "_ffunc-master_" __TIME__
+#define FFUNC_SETENV setenv
+#define FFUNC_GETENV getenv
+#define FFUNC_EXECVE execve
+#define _FFUNC_MASTER_ " ffunc-master"
+#define _FFUNC_WORKER_ " ffunc-worker"
 
-typedef void (*h)(ffunc_session_t*);
+static void* mem_align(size_t size);
+static int ffunc_get_number_of_digit(long long number);
+static ffunc_pool* ffunc_recreate_pool(ffunc_pool *curr_p, size_t new_size);
+static ffunc_str_t ffunc_proc_name;
+
+
+typedef void(*h)(ffunc_session_t*);
 
 struct ffunc_handler {
     char* name;
@@ -34,7 +44,7 @@ struct ffunc_handler {
     h handle;
 };
 
-typedef struct  {
+typedef struct {
     int fcgi_func_socket;
     pthread_mutex_t accept_mutex;
 } ffunc_worker_t;
@@ -45,7 +55,7 @@ struct ffunc_handler *dyna_funcs = NULL;
 static size_t max_std_input_buffer;
 
 static int ffunc_init(char** ffunc_nmap_func);
-int strpos(const char *haystack, const char *needle);
+static int ffunc_strpos(const char *haystack, const char *needle);
 void *ffunc_thread_worker(void* wrker);
 static int hook_socket(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func);
 static void ffunc_add_signal_handler(void);
@@ -56,7 +66,7 @@ static int  has_init_signal = 0;
 static struct sigaction sa;
 static void *usr_req_handle;
 // extern declaration
-size_t (*ffunc_read_body)(ffunc_session_t * , ffunc_str_t *);
+size_t(*ffunc_read_body)(ffunc_session_t *, ffunc_str_t *);
 
 static int
 ffunc_init(char** ffunc_nmap_func) {
@@ -67,22 +77,20 @@ ffunc_init(char** ffunc_nmap_func) {
     usr_req_handle = dlopen(NULL, RTLD_LAZY | RTLD_NOW);
     if (!usr_req_handle) {
         ffunc_print("%s\n", dlerror());
-        ffunc_print("%s\n", "Have you included -rdynamic in your compiler option, for e.g gcc ... -rdynamic");
+        ffunc_print("%s\n", "Module not found");
         return 0;
     }
 
     for (func_count = 0; ffunc_nmap_func[func_count]; func_count++);
 
     dyna_funcs = (struct ffunc_handler*) malloc(func_count * sizeof(struct ffunc_handler));
-
     for (f = 0; f < func_count; f++) {
-        szof_func_name = strlen(ffunc_nmap_func[f]);
-        dyna_funcs[f].name = (char*) calloc(szof_func_name + 1, sizeof(char));
+        // szof_func_name = strlen(ffunc_nmap_func[f]);
+        dyna_funcs[f].name = ffunc_nmap_func[f]; //(char*) calloc(szof_func_name + 1, sizeof(char));
 
-        memcpy(dyna_funcs[f].name, ffunc_nmap_func[f], szof_func_name);
-        dyna_funcs[f].len = szof_func_name;
-
-        *(void **) (&dyna_funcs[f].handle) = dlsym(usr_req_handle, ffunc_nmap_func[f]);
+        // memcpy(dyna_funcs[f].name, ffunc_nmap_func[f], szof_func_name);
+        dyna_funcs[f].len = strlen(ffunc_nmap_func[f]);
+        *(void **)(&dyna_funcs[f].handle) = dlsym(usr_req_handle, ffunc_nmap_func[f]);
 
         if ((error = dlerror()) != NULL) {
             ffunc_print("%s\n", error);
@@ -96,21 +104,17 @@ ffunc_init(char** ffunc_nmap_func) {
 /**To prevent -std=99 issue**/
 char *
 ffunc_strdup(ffunc_session_t * csession, const char *str, size_t len) {
-    if (len == 0 ) {
+    if (len == 0) {
         return NULL;
     }
     char *dupstr = (char*)_ffunc_alloc(&csession->pool, len + 1);
     if (dupstr == NULL) {
         return NULL;
     }
-    memset(dupstr, 0, len + 1);
-    return memcpy(dupstr, str, len);
-}
-
-void
-ffunc_print_time(char* buff) {
-    time_t now = time(NULL);
-    strftime(buff, 20, "%Y-%m-%d %H:%M:%S", localtime(&now));
+    memcpy(dupstr, str, len);
+    // memset(dupstr, 0, len + 1);
+    dupstr[len] = (char)0;
+    return dupstr;
 }
 
 static void
@@ -121,7 +125,7 @@ handle_request(FCGX_Request *request) {
 
     ffunc_pool *p = ffunc_create_pool(DEFAULT_BLK_SZ);
     ffunc_session_t *_csession_ = (ffunc_session_t*)malloc(sizeof(ffunc_session_t));
-    if ( p == NULL || _csession_ == NULL) {
+    if (p == NULL || _csession_ == NULL) {
         fprintf(stderr, "error %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
@@ -129,14 +133,14 @@ handle_request(FCGX_Request *request) {
     _csession_->query_str = NULL;
     _csession_->request = request;
 
-    if ( (value = FCGX_GetParam("FN_HANDLER", request->envp)) ) {
+    if ((value = FCGX_GetParam("FN_HANDLER", request->envp))) {
         int i;
         size_t vallen = strlen(value);
         for (i = 0; i < func_count; i++) {
-            if ( dyna_funcs[i].len == vallen && (strcmp(dyna_funcs[i].name, value) == 0) ) {
-                if ( ( qparam = _get_param_("QUERY_STRING") ) ) {
+            if (dyna_funcs[i].len == vallen && (strcmp(dyna_funcs[i].name, value) == 0)) {
+                if ((qparam = _get_param_("QUERY_STRING"))) {
                     query_string = ffunc_strdup(_csession_, qparam, strlen(qparam));
-                    if (!is_empty(query_string)) {
+                    if (query_string && query_string[0]) {
                         _csession_->query_str = query_string;//parse_json_fr_args(query_string);
                     }
                 }
@@ -145,7 +149,8 @@ handle_request(FCGX_Request *request) {
                 goto RELEASE_POOL;
             }
         }
-    } else {
+    }
+    else {
         ffunc_write_out(_csession_, "Content-Type: text/plain\r\n\r\n");
         ffunc_write_out(_csession_, "%s\n", "FN_HANDLER not found");
         ffunc_write_out(_csession_, "%s\n", "Please provide your FN_HANDLER in your config file");
@@ -158,71 +163,6 @@ RELEASE_POOL:
     free(_csession_);
 }
 
-size_t
-slen(const char* str) {
-    register const char *s;
-    for (s = str; *s; ++s);
-    return (s - str);
-}
-
-int
-ffunc_isspace(const char* s) {
-    return (*s == SPACE || *s == TAB || *s == NEW_LINE ||
-            *s == VERTICAL_TAB || *s == FF_FEED || *s == CARRIAGE_RETURN ? 1 : 0);
-    // return (*s == '\t' || *s == '\n' ||
-    //         *s == '\v' || *s == '\f' || *s == '\r' || *s == ' ' ? 1 : 0);
-}
-
-int
-is_empty(char *s) {
-    if (s && s[0])
-        return 0;
-    return 1;
-}
-
-int
-ffunc_file_existd(const char* fname) {
-    if ( access( fname, F_OK ) != -1 )
-        return 1;
-    else
-        return 0;
-}
-
-int
-strpos(const char *haystack, const char *needle)
-{
-    char *p = (char*)strstr(haystack, needle);
-    if (p)
-        return p - haystack;
-    return -1;   // Not found = -1.
-}
-
-void*
-ffunc_get_query_param(ffunc_session_t * csession, const char *key, size_t len) {
-    int pos;
-    char *qs = csession->query_str;
-    if (key && *key && qs && *qs) {
-        do {
-            if ((pos = strpos(qs, key)) < 0) return NULL;
-
-            if (pos == 0 || qs[pos - 1] == '&') {
-                qs = (char*)qs + pos + len;
-                if (*qs++ == '=') {
-                    char *src = qs,
-                          *ret;
-                    size_t sz = 0;
-                    while (*qs && *qs++ != '&')sz++;
-
-                    ret = (char*) _ffunc_alloc(&csession->pool, sz + 1);
-                    memset(ret, 0, sz + 1);
-                    return memcpy(ret, src, sz);
-                } else while (*qs && *qs++ != '&');
-            } else while (*qs && *qs++ != '&');
-        } while (*qs);
-    }
-    return NULL;
-}
-
 static size_t
 ffunc_read_body_nolimit(ffunc_session_t * csession, ffunc_str_t *content) {
     FCGX_Request *request = csession->request;
@@ -230,11 +170,12 @@ ffunc_read_body_nolimit(ffunc_session_t * csession, ffunc_str_t *content) {
     FCGX_Stream *in = request->in;
     size_t len;
 
-    if (clenstr && ((len = strtol(clenstr, &clenstr, 10)) != 0) ) {
+    if (clenstr && ((len = strtol(clenstr, &clenstr, 10)) != 0)) {
         content->data = (char*)_ffunc_alloc(&csession->pool, len + 1);
         memset(content->data, 0, len + 1);
         content->len = FCGX_GetStr(content->data, len, in);
-    } else {
+    }
+    else {
         content->data = NULL;
         content->len = 0;
     }
@@ -260,7 +201,7 @@ ffunc_read_body_limit(ffunc_session_t * csession, ffunc_str_t *content) {
         /* Don't read more than the predefined limit  */
         if (len > max_std_input_buffer) { len = max_std_input_buffer; }
 
-        content->data = (char*) _ffunc_alloc(&csession->pool, len + 1);
+        content->data = (char*)_ffunc_alloc(&csession->pool, len + 1);
         memset(content->data, 0, len + 1);
         content->len = FCGX_GetStr(content->data, len, in);
     }
@@ -281,14 +222,9 @@ ffunc_read_body_limit(ffunc_session_t * csession, ffunc_str_t *content) {
 #define FFUNC_APP_INITIALIZED "DONE"
 #define FFUNC_APP_INIT_PIPE_BUF_SIZE sizeof(FFUNC_APP_INITIALIZED)
 
-/**Main api**/
+/**Main Hook**/
 int
-ffunc_main(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func, void (*app_init_handler)(void)) {
-    return ffunc_main2(sock_port, backlog, max_thread, ffunc_nmap_func, app_init_handler, 0);
-}
-/**Main api**/
-int
-ffunc_main2(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func, void (*app_init_handler)(void), size_t max_read_buffer) {
+ffunc_hook(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func, void(*app_init_handler)(void), size_t max_read_buffer) {
     pid_t childPID;
     int child_status;
     int procpip[2];
@@ -297,8 +233,24 @@ ffunc_main2(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func, 
     if (max_read_buffer > 0) {
         max_std_input_buffer = max_read_buffer;
         ffunc_read_body = &ffunc_read_body_limit;
-    } else {
+    }
+    else {
         ffunc_read_body = &ffunc_read_body_nolimit;
+    }
+
+    if (sock_port <= 0) {
+        ffunc_print("%s\n", "sock_port has no defined...");
+        return 1;
+    }
+
+    if (max_thread <= 0) {
+        ffunc_print("%s\n", "max_thread has no defined...");
+        return 1;
+    }
+
+    if (backlog <= 0) {
+        ffunc_print("%s\n", "backlog has no defined...");
+        return 1;
     }
 
     if (!ffunc_nmap_func[0]) {
@@ -320,6 +272,8 @@ FFUNC_WORKER_RESTART:
     childPID = fork();
     if (childPID >= 0) {// fork was successful
         if (childPID == 0) {// child process
+            char *swap_name = (ffunc_proc_name.data + ffunc_proc_name.len) - (sizeof(_FFUNC_MASTER_) - 1);
+            memcpy(swap_name, _FFUNC_WORKER_, (sizeof(_FFUNC_MASTER_) - 1));
             if (app_init_handler) {
                 app_init_handler();
             }
@@ -329,14 +283,16 @@ FFUNC_WORKER_RESTART:
             close(procpip[1]);
 
             return hook_socket(sock_port, backlog, max_thread, ffunc_nmap_func);
-        } else { // Parent process
+        }
+        else { // Parent process
             while (1) {
                 if (waitpid(childPID, &child_status, WNOHANG) == childPID) {
                     has_init_signal = 0;
-                    if ( read(procpip[0], pipbuf, FFUNC_APP_INIT_PIPE_BUF_SIZE) > 0 ) {
-                        if ( strncmp(pipbuf, FFUNC_APP_INITIALIZED, FFUNC_APP_INIT_PIPE_BUF_SIZE) == 0 ) {
+                    if (read(procpip[0], pipbuf, FFUNC_APP_INIT_PIPE_BUF_SIZE) > 0) {
+                        if (strncmp(pipbuf, FFUNC_APP_INITIALIZED, FFUNC_APP_INIT_PIPE_BUF_SIZE) == 0) {
                             goto FFUNC_WORKER_RESTART;
-                        } else {
+                        }
+                        else {
                             printf("%s\n", "Failed while initializing the application... ");
                             close(procpip[0]);
                             close(procpip[1]);
@@ -347,7 +303,8 @@ FFUNC_WORKER_RESTART:
                 sleep(1);
             }
         }
-    } else {// fork failed
+    }
+    else {// fork failed
         ffunc_print("%s\n", "Fork Child failed..");
         return -1;
     }
@@ -358,7 +315,7 @@ FFUNC_WORKER_RESTART:
 void *
 ffunc_thread_worker(void* wrker) {
     int rc;
-    ffunc_worker_t *worker_t = (ffunc_worker_t*) wrker;
+    ffunc_worker_t *worker_t = (ffunc_worker_t*)wrker;
 
     FCGX_Request request;
     if (FCGX_InitRequest(&request, worker_t->fcgi_func_socket, FCGI_FAIL_ACCEPT_ON_INTR) != 0) {
@@ -388,12 +345,12 @@ hook_socket(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func) 
     }
 
     char port_str[12];
-    ffunc_worker_t *worker_t = (ffunc_worker_t*) malloc(sizeof(ffunc_worker_t));
+    ffunc_worker_t *worker_t = (ffunc_worker_t*)malloc(sizeof(ffunc_worker_t));
     if (worker_t == NULL) {
         perror("nomem");
     }
 
-    worker_t->accept_mutex = (pthread_mutex_t) PTHREAD_MUTEX_INITIALIZER; // this is lock for all threads
+    worker_t->accept_mutex = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER; // this is lock for all threads
     int i;
     sprintf(port_str, ":%d", sock_port);
 
@@ -402,13 +359,14 @@ hook_socket(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func) 
             worker_t->fcgi_func_socket = FCGX_OpenSocket(port_str, backlog);
         else
             worker_t->fcgi_func_socket = FCGX_OpenSocket(port_str, 50);
-    } else {
+    }
+    else {
         ffunc_print("%s\n", "argument wrong");
         exit(1);
     }
 
     if (worker_t->fcgi_func_socket < 0) {
-        ffunc_print("%s\n", "unable to open the socket" );
+        ffunc_print("%s\n", "unable to open the socket");
         exit(1);
     }
 
@@ -416,11 +374,11 @@ hook_socket(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func) 
     ffunc_print("Socket on hook %d\n", sock_port);
 
     pthread_t pth_workers[max_thread];
-    for ( i = 0; i < max_thread; i++) {
+    for (i = 0; i < max_thread; i++) {
         pthread_create(&pth_workers[i], NULL, ffunc_thread_worker, worker_t);
         // pthread_detach(pth_worker);
     }
-    for ( i = 0; i < max_thread; i++) {
+    for (i = 0; i < max_thread; i++) {
         pthread_join(pth_workers[i], NULL);
     }
 
@@ -466,6 +424,45 @@ ffunc_add_signal_handler() {
 #endif
     has_init_signal = 1;
 }
+
+int
+main(int argc, char *argv[]) {
+    ffunc_config_t *conf;
+    char **new_argv, *env_ffunc_master;
+    unsigned int i = 1;
+    int status;
+
+    if (FFUNC_GETENV(_FFUNC_MASTER_ENV)) {
+        conf = calloc(1, sizeof(ffunc_config_t));
+
+        ffunc_proc_name.data = argv[0];
+        ffunc_proc_name.len = strlen(argv[0]);
+
+        if ((status = ffunc_main(argc, argv, conf)) == 0) {
+            return ffunc_hook(conf->sock_port, conf->backlog, conf->max_thread, conf->ffunc_nmap_func, conf->app_init_handler, conf->max_read_buffer);
+        } else {
+            fprintf(stderr, "Error status %d, status return is not successful(0) \n", status);
+            return status;
+        }
+    } else {
+        FFUNC_SETENV(_FFUNC_MASTER_ENV, argv[0], 1);
+        new_argv = calloc(argc + 1, sizeof(char*));
+        size_t arg$0sz = strlen(argv[0]);
+        new_argv[0] = calloc(arg$0sz + sizeof(_FFUNC_MASTER_), sizeof(char));
+        memcpy(new_argv[0], argv[0], arg$0sz);
+        memcpy(new_argv[0] + arg$0sz, _FFUNC_MASTER_, sizeof(_FFUNC_MASTER_) - 1);
+
+        while (argv[i]) {
+            new_argv[i] = argv[i++];
+        }
+
+        new_argv[i] = NULL;
+        extern char **environ;
+        FFUNC_EXECVE(argv[0], new_argv, environ);
+    }
+    return 0;
+}
+
 #else
 #if defined _WIN32 || _WIN64 /*Windows*/
 #include <process.h>
@@ -477,13 +474,41 @@ ffunc_add_signal_handler() {
 #include <fcgiapp.h>
 
 #define _get_param_(KEY) FCGX_GetParam(KEY, request->envp)
-#define ffunc_print(...) fprintf (stderr, __VA_ARGS__)
 #define FFUNC_ERROR(errmsg) fprintf(stderr, "%s - %d\n", errmsg, GetLastError() )
 
+int setenv(const char *name, const char *value, int overwrite) {
+    int errcode = 0;
+    if (!overwrite) {
+        size_t envsize = 0;
+        errcode = getenv_s(&envsize, NULL, 0, name);
+        if (errcode || envsize) return errcode;
+    }
+    return _putenv_s(name, value);
+}
+char* getenv_secure(char const* _VarName) {
+    size_t envsize = 0;
+    char *exec_name = NULL;
+    if (getenv_s(&envsize, NULL, 0, _VarName) || envsize <= 0) {
+        return NULL;
+    }
+    exec_name = calloc(envsize + 1, sizeof(char));
+    if (getenv_s(&envsize, exec_name, envsize, _VarName) || envsize <= 0) {
+        return NULL;
+    }
+    return exec_name;
+}
+#define _FFUNC_MASTER_ENV "_ffunc-master_" __TIME__
+#define FFUNC_SETENV setenv
+#define FFUNC_GETENV(varname) getenv_secure(varname)
+#define FFUNC_EXECVE _execve
+#define _FFUNC_MASTER_ "_ffunc-master"
+#define _FFUNC_WORKER_ "_ffunc-worker"
 
 static void* mem_align(size_t size);
+static int ffunc_get_number_of_digit(long long number);
 static ffunc_pool* ffunc_recreate_pool(ffunc_pool *curr_p, size_t new_size);
 typedef void(*h)(ffunc_session_t*);
+static ffunc_str_t ffunc_proc_name;
 
 struct ffunc_handler {
     char* name;
@@ -502,7 +527,7 @@ struct ffunc_handler *dyna_funcs = NULL;
 static size_t max_std_input_buffer;
 
 static int ffunc_init(char** ffunc_nmap_func);
-int strpos(const char *haystack, const char *needle);
+static int ffunc_strpos(const char *haystack, const char *needle);
 unsigned __stdcall ffunc_thread_worker(void *wrker);
 static int hook_socket(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func);
 static void ffunc_add_signal_handler(void);
@@ -511,7 +536,6 @@ static size_t ffunc_read_body_limit(ffunc_session_t * csession, ffunc_str_t *con
 static size_t ffunc_read_body_nolimit(ffunc_session_t * csession, ffunc_str_t *content);
 static int  has_init_signal = 0;
 static HINSTANCE usr_req_handle;
-
 
 // extern declaration
 size_t(*ffunc_read_body)(ffunc_session_t *, ffunc_str_t *);
@@ -550,7 +574,7 @@ ffunc_init(char** ffunc_nmap_func) {
         memcpy(dyna_funcs[f].name, ffunc_nmap_func[f], szof_func_name);
         dyna_funcs[f].len = szof_func_name;
 
-        dyna_funcs[f].handle = (h) GetProcAddress(usr_req_handle, ffunc_nmap_func[f]);
+        dyna_funcs[f].handle = (h)GetProcAddress(usr_req_handle, ffunc_nmap_func[f]);
         if (!dyna_funcs[f].handle) {
             FFUNC_ERROR("could not locate the function");
             return EXIT_FAILURE;
@@ -562,15 +586,17 @@ ffunc_init(char** ffunc_nmap_func) {
 /**To prevent -std=99 issue**/
 char *
 ffunc_strdup(ffunc_session_t * csession, const char *str, size_t len) {
-    if (len == 0 ) {
+    if (len == 0) {
         return NULL;
     }
     char *dupstr = (char*)_ffunc_alloc(&csession->pool, len + 1);
     if (dupstr == NULL) {
         return NULL;
     }
-    memset(dupstr, 0, len + 1);
-    return memcpy(dupstr, str, len);
+    memcpy(dupstr, str, len);
+    // memset(dupstr, 0, len + 1);
+    dupstr[len] = (char)0;
+    return dupstr;
 }
 
 static void
@@ -580,7 +606,7 @@ handle_request(FCGX_Request *request) {
          *query_string;
 
     ffunc_pool *p = ffunc_create_pool(DEFAULT_BLK_SZ);
-    ffunc_session_t *_csession_ = (ffunc_session_t *) malloc(sizeof(ffunc_session_t));
+    ffunc_session_t *_csession_ = (ffunc_session_t *)malloc(sizeof(ffunc_session_t));
     if (p == NULL || _csession_ == NULL) {
         char err_buff[50];
         strerror_s(err_buff, sizeof err_buff, errno);
@@ -595,10 +621,10 @@ handle_request(FCGX_Request *request) {
         int i;
         size_t vallen = strlen(value);
         for (i = 0; i < func_count; i++) {
-            if ( dyna_funcs[i].len == vallen && (strcmp(dyna_funcs[i].name, value) == 0) ) {
-                if ( ( qparam = _get_param_("QUERY_STRING") ) ) {
+            if (dyna_funcs[i].len == vallen && (strcmp(dyna_funcs[i].name, value) == 0)) {
+                if ((qparam = _get_param_("QUERY_STRING"))) {
                     query_string = ffunc_strdup(_csession_, qparam, strlen(qparam));
-                    if (!is_empty(query_string)) {
+                    if (query_string && query_string[0]) {
                         _csession_->query_str = query_string;//parse_json_fr_args(query_string);
                     }
                 }
@@ -619,66 +645,6 @@ handle_request(FCGX_Request *request) {
 RELEASE_POOL:
     ffunc_destroy_pool(_csession_->pool);
     free(_csession_);
-}
-
-size_t
-slen(const char* str) {
-    register const char *s;
-    for (s = str; *s; ++s);
-    return (s - str);
-}
-
-int
-ffunc_isspace(const char* s) {
-    return (*s == SPACE || *s == TAB || *s == NEW_LINE ||
-            *s == VERTICAL_TAB || *s == FF_FEED || *s == CARRIAGE_RETURN ? 1 : 0);
-    // return (*s == '\t' || *s == '\n' ||
-    //         *s == '\v' || *s == '\f' || *s == '\r' || *s == ' ' ? 1 : 0);
-}
-
-int
-is_empty(char *s) {
-    if (s && s[0])
-        return 0;
-    return 1;
-}
-
-
-int
-strpos(const char *haystack, const char *needle)
-{
-    char *p = strstr(haystack, needle);
-    if (p)
-        return p - haystack;
-    return -1;   // Not found = -1.
-}
-
-void*
-ffunc_get_query_param(ffunc_session_t * csession, const char *key, size_t len) {
-    int pos;
-    char *qs = csession->query_str;
-    if (key && *key && qs && *qs) {
-        do {
-            if ((pos = strpos(qs, key)) < 0) return NULL;
-
-            if (pos == 0 || qs[pos - 1] == '&') {
-                qs = (char*)qs + pos + len;
-                if (*qs++ == '=') {
-                    char *src = qs,
-                          *ret;
-                    size_t sz = 0;
-                    while (*qs && *qs++ != '&')sz++;
-
-                    ret = _ffunc_alloc(&csession->pool, sz + 1);
-                    memset(ret, 0, sz + 1);
-                    return memcpy(ret, src, sz);
-                }
-                else while (*qs && *qs++ != '&');
-            }
-            else while (*qs && *qs++ != '&');
-        } while (*qs);
-    }
-    return NULL;
 }
 
 static size_t
@@ -737,11 +703,9 @@ ffunc_read_body_limit(ffunc_session_t * csession, ffunc_str_t *content) {
     return len;
 }
 
-PROCESS_INFORMATION g_pi;
 
 static void
 ffunc_interrupt_handler(intptr_t signal) {
-    TerminateProcess(g_pi.hProcess, 0);
     ExitProcess(0);
 }
 
@@ -754,19 +718,39 @@ console_ctrl_handler(DWORD ctrl) {
     case CTRL_BREAK_EVENT:
     case CTRL_LOGOFF_EVENT:
     case CTRL_SHUTDOWN_EVENT:
-        TerminateProcess(g_pi.hProcess, 0);
         return TRUE;
     default:
         return FALSE;
     }
 }
 
-/**Main api**/
-int ffunc_main(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func, void(*app_init_handler)(void)) {
-    return ffunc_main2(sock_port, backlog, max_thread, ffunc_nmap_func, app_init_handler, 0);
-}
-/**Main api**/
-int ffunc_main2(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func, void(*app_init_handler)(void), size_t max_read_buffer) {
+#define ffunc_print(...) printf ( __VA_ARGS__)
+#define ffunc_spawn_child _spawnve
+
+/**Main Hook**/
+int ffunc_hook(char **argv, ffunc_config_t *conf, int bypassmaster) {
+    int sock_port = conf->sock_port;
+    int backlog = conf->backlog;
+    int max_thread = conf->max_thread;
+    char** ffunc_nmap_func = conf->ffunc_nmap_func;
+    size_t max_read_buffer = conf->max_read_buffer;
+    char* exec_name = conf->__exec_name;
+
+
+    if (sock_port <= 0) {
+        ffunc_print("%s\n", "sock_port has no defined...");
+        return 1;
+    }
+
+    if (max_thread <= 0) {
+        ffunc_print("%s\n", "max_thread has no defined...");
+        return 1;
+    }
+
+    if (backlog <= 0) {
+        ffunc_print("%s\n", "backlog has no defined...");
+        return 1;
+    }
 
     if (!ffunc_nmap_func[0]) {
         ffunc_print("%s\n", "ffunc_nmap_func has no defined...");
@@ -781,91 +765,94 @@ int ffunc_main2(int sock_port, int backlog, int max_thread, char** ffunc_nmap_fu
         ffunc_read_body = &ffunc_read_body_nolimit;
     }
 
-    ffunc_print("%s\n", "Service starting");
-    ffunc_print("sock_port=%d, backlog=%d\n", sock_port, backlog);
-
-#if defined(UNICODE) || defined(_UNICODE)
-    typedef WCHAR FFUNCCMD_CHAR;
-#define ffunc_cmdlen wcslen
-#define ffunc_cmdstrstr wcsstr
-    static const FFUNCCMD_CHAR* child_cmd_str = L"ffunc-child-proc";
-#else
-    typedef char FFUNCCMD_CHAR;
-#define ffunc_cmdlen strlen
-#define ffunc_cmdstrstr strstr
-    static const FFUNCCMD_CHAR* child_cmd_str = "ffunc-child-proc";
-#endif
-    FFUNCCMD_CHAR *cmd_str = GetCommandLine();
-    SIZE_T cmd_len = ffunc_cmdlen(cmd_str);
-    SIZE_T childcmd_len = ffunc_cmdlen(child_cmd_str);
-    SIZE_T spawn_child_cmd_len = cmd_len + childcmd_len + 1; // 1 for NULL terminator
- //    goto CONTINUE_CHILD_PROCESS;
-    if (cmd_len > childcmd_len) {
-        FFUNCCMD_CHAR *p_cmd_str = cmd_str + cmd_len - sizeof("ffunc-child-proc");
-        if (ffunc_cmdstrstr(p_cmd_str, child_cmd_str)) {
-            if (app_init_handler) {
-                app_init_handler();
-            }
-            goto CONTINUE_CHILD_PROCESS;
-        }
-        else {
-            goto SPAWN_CHILD_PROC;
-        }
+    if (bypassmaster) {
+        goto CONTINUE_CHILD_PROCESS;
     }
     else {
+        goto SPAWN_CHILD_PROC;
+    }
+
 SPAWN_CHILD_PROC:
-        // Setup a console control handler: We stop the server on CTRL-C
-        SetConsoleCtrlHandler(console_ctrl_handler, TRUE);
-        signal(SIGINT, ffunc_interrupt_handler);
-        STARTUPINFO si;
-        ZeroMemory(&si, sizeof(si));
-        si.cb = sizeof(si);
-        ZeroMemory(&g_pi, sizeof(g_pi));
+    // Setup a console control handler: We stop the server on CTRL-C
+    SetConsoleCtrlHandler(console_ctrl_handler, TRUE);
+    signal(SIGINT, ffunc_interrupt_handler);
 
-        FFUNCCMD_CHAR *spawn_child_cmd_str = (FFUNCCMD_CHAR*)malloc(spawn_child_cmd_len * sizeof(FFUNCCMD_CHAR));
-        ZeroMemory(spawn_child_cmd_str, spawn_child_cmd_len * sizeof(FFUNCCMD_CHAR));
+    SIZE_T i;
+    char *sockport_str,
+         *backlog_str,
+         *max_thread_str,
+         *max_read_buffer_str;
 
-        SIZE_T i, j;
-        for (i = 0; i < cmd_len; i++) {
-            spawn_child_cmd_str[i] = cmd_str[i];
-        }
-        spawn_child_cmd_str[i++] = ' ';
+    if (sock_port != 0) {
+        sockport_str = malloc((ffunc_get_number_of_digit(sock_port) + 1) * sizeof(char));
+        snprintf(sockport_str, ffunc_get_number_of_digit(sock_port) + 1, "%d", sock_port);
+        FFUNC_SETENV("_FFUNC_ENV_SOCK_PORT", sockport_str, 1);
+    }
 
-        for (j = 0; j < childcmd_len; i++, j++) {
-            spawn_child_cmd_str[i] = child_cmd_str[j];
-        }
+    if (backlog != 0) {
+        backlog_str = malloc((ffunc_get_number_of_digit(backlog) + 1) * sizeof(char));
+        snprintf(backlog_str, ffunc_get_number_of_digit(backlog) + 1, "%d", backlog);
+        FFUNC_SETENV("_FFUNC_ENV_BACKLOG", backlog_str, 1);
+    }
 
-        spawn_child_cmd_str[i] = '\0';
+    if (max_thread != 0) {
+        max_thread_str = malloc((ffunc_get_number_of_digit(max_thread) + 1) * sizeof(char));
+        snprintf(max_thread_str, ffunc_get_number_of_digit(max_thread) + 1, "%d", max_thread);
+        FFUNC_SETENV("_FFUNC_ENV_MAX_THREAD", max_thread_str, 1);
+    }
+
+
+    if (max_read_buffer != 0) {
+        max_read_buffer_str = malloc((ffunc_get_number_of_digit(max_read_buffer) + 1) * sizeof(char));
+        snprintf(max_read_buffer_str, ffunc_get_number_of_digit(max_read_buffer) + 1, "%d", max_read_buffer);
+        FFUNC_SETENV("_FFUNC_ENV_MAX_READ_BUF", max_read_buffer_str, 1);
+    }
+
+
+    SIZE_T func_str_sz = 0;
+    for (i = 0; ffunc_nmap_func[i]; i++) {
+        func_str_sz = func_str_sz + strlen(ffunc_nmap_func[i]) + sizeof("\",\" ") - 1;
+    }
+
+    char *func_str = malloc((func_str_sz + 1) * sizeof(char));
+    char* p = func_str;
+    for (i = 0; ffunc_nmap_func[i]; i++) {
+        p = (char*) (memcpy(p, ffunc_nmap_func[i], strlen(ffunc_nmap_func[i]))) + strlen(ffunc_nmap_func[i]);
+        p = (char*) (memcpy(p, "\",\" ", sizeof("\",\" ") - 1 )) + (sizeof("\",\" ") - 1);
+    }
+    func_str[func_str_sz] = (char)0;
+
+    FFUNC_SETENV("_FFUNC_ENV_FUNC_str", func_str, 1);
+    // ffunc_print("func_str = %s\n", func_str);
+
+    // Change command line to worker
+    if ((strlen(exec_name) + (sizeof(_FFUNC_WORKER_) - 1)) <= strlen(argv[0])) {
+        memmove(argv[0] + strlen(exec_name), _FFUNC_WORKER_, (sizeof(_FFUNC_WORKER_) - 1));
+    }
+    extern char **environ;
 
 FFUNC_WORKER_RESTART:
-        if (CreateProcess(
-                    NULL,
-                    spawn_child_cmd_str, // Child cmd string differentiate by last param
-                    NULL,
-                    NULL,
-                    0,
-                    CREATE_NO_WINDOW,
-                    NULL,
-                    NULL,
-                    &si,
-                    &g_pi) == 0) {
-            FFUNC_ERROR("CreateProcess failed\n");
-            Sleep(2000);
-            ExitProcess(0);
-        }
-        fprintf(stderr, "%s\n", "Press Ctrl-C to terminate the process....");
-        WaitForSingleObject(g_pi.hProcess, INFINITE);
-        CloseHandle(g_pi.hProcess);
-        CloseHandle(g_pi.hThread);
-        if (GetLastError() != 5) {
-            goto FFUNC_WORKER_RESTART;
-        }
+    if (exec_name) {
+        ffunc_spawn_child(_P_WAIT, exec_name, argv, environ);
+        goto FFUNC_WORKER_RESTART;
     }
+    else {
+        FFUNC_ERROR("Error: Exec name not found ");
+
+    }
+
     FFUNC_ERROR("Error: ");
     Sleep(3000);
     ExitProcess(0);
 
 CONTINUE_CHILD_PROCESS:
+
+    ffunc_print("%s\n", "Service starting");
+    ffunc_print("Socket port on hook %d\n", sock_port);
+    ffunc_print("backlog=%d\n", backlog);
+    ffunc_print("%d threads \n", max_thread);
+
+    fprintf(stderr, "%s\n", "Press Ctrl-C to terminate the process....");
     return hook_socket(sock_port, backlog, max_thread, ffunc_nmap_func);
 
 }
@@ -928,9 +915,6 @@ hook_socket(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func) 
         exit(1);
     }
 
-    ffunc_print("%d threads \n", max_thread);
-    ffunc_print("Socket on hook %d\n", sock_port);
-
     HANDLE  *pth_workers = calloc(max_thread, sizeof(HANDLE));
     for (i = 0; i < max_thread; i++) {
         unsigned thread_id;
@@ -943,8 +927,140 @@ hook_socket(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func) 
     ffunc_print("%s\n", "Exiting");
     return EXIT_SUCCESS;
 }
+
+int
+main(int argc, char *argv[]) {
+    ffunc_config_t *conf;
+    char **new_argv;
+    unsigned int i = 1;
+    int status;
+    char* exec_name;
+    char *sockport_str,
+         *backlog_str,
+         *max_thread_str,
+         *max_read_buffer_str,
+         *func_str;
+
+    if ((sockport_str = FFUNC_GETENV("_FFUNC_ENV_SOCK_PORT")) &&
+            (backlog_str = FFUNC_GETENV("_FFUNC_ENV_BACKLOG")) &&
+            (max_thread_str = FFUNC_GETENV("_FFUNC_ENV_MAX_THREAD")) &&
+            (func_str = FFUNC_GETENV("_FFUNC_ENV_FUNC_str"))
+       ) {
+        conf = calloc(1, sizeof(ffunc_config_t));
+        conf->sock_port = atoi(sockport_str);
+        conf->backlog = atoi(backlog_str);
+        conf->max_thread = atoi(max_thread_str);
+        if ((max_read_buffer_str = FFUNC_GETENV("_FFUNC_ENV_MAX_READ_BUF"))) {
+            conf->max_read_buffer = (size_t)atol(max_read_buffer_str);
+        }
+        int func_count = 0, index = 0;
+        char* p = func_str;
+        while ((p = strstr(p, "\",\" "))) {
+            func_count++;
+            p += sizeof("\",\" ") - 1;
+        }
+        if (func_count > 0) {
+            conf->ffunc_nmap_func = (char**)calloc(func_count + 1, sizeof(char*));
+            p = func_str;
+            while ((strstr(p, "\",\" "))) {
+                conf->ffunc_nmap_func[index++] = p;
+                p = strstr(p, "\",\" ");
+                *p = (char)0; // char terminate for previos function
+                p += sizeof("\",\" ") - 1;
+            }
+            conf->ffunc_nmap_func[index++] = NULL;
+            /*for (index = 0; conf->ffunc_nmap_func[index]; index++) {
+            printf("conf->ffunc_nmap_func %s\n", conf->ffunc_nmap_func[index]);
+            }*/
+        }
+        else {
+            FFUNC_ERROR("Function has no defined, [ conf->ffunc_nmap_func ] ");
+            return -1;
+        }
+        return ffunc_hook(argv, conf, 1);
+    }
+    else if ((exec_name = FFUNC_GETENV(_FFUNC_MASTER_ENV))) {
+        conf = calloc(1, sizeof(ffunc_config_t));
+        conf->__exec_name = exec_name;
+        ffunc_proc_name.data = argv[0];
+        ffunc_proc_name.len = strlen(argv[0]);
+
+        if ((status = ffunc_main(argc, argv, conf)) == 0) {
+            return ffunc_hook(argv, conf, 0);
+        }
+        else {
+            fprintf(stderr, "Error status %d, status return is not successful(0) \n", status);
+            return status;
+        }
+    }
+    else {
+        FFUNC_SETENV(_FFUNC_MASTER_ENV, argv[0], 1);
+        new_argv = calloc(argc + 1, sizeof(char*));
+        size_t arg$0sz = strlen(argv[0]);
+        new_argv[0] = calloc(arg$0sz + sizeof(_FFUNC_MASTER_), sizeof(char));
+        memcpy(new_argv[0], argv[0], arg$0sz);
+        memcpy(new_argv[0] + arg$0sz, _FFUNC_MASTER_, sizeof(_FFUNC_MASTER_) - 1);
+
+        while (argv[i]) {
+            new_argv[i] = argv[i++];
+        }
+
+        new_argv[i] = NULL;
+        extern char **environ;
+        FFUNC_EXECVE(argv[0], new_argv, environ);
+    }
+    return 0;
+}
 #endif
 #endif
+
+static int
+ffunc_get_number_of_digit(long long number) {
+    int count = 0;
+    while (number != 0)
+    {
+        number /= 10;
+        ++count;
+    }
+    return count;
+}
+
+static int
+ffunc_strpos(const char *haystack, const char *needle)
+{
+    char *p = strstr(haystack, needle);
+    if (p)
+        return p - haystack;
+    return -1;   // Not found = -1.
+}
+
+void*
+ffunc_get_query_param(ffunc_session_t * csession, const char *key, size_t len) {
+    int pos;
+    char *qs = csession->query_str;
+    if (key && *key && qs && *qs) {
+        do {
+            if ((pos = ffunc_strpos(qs, key)) < 0) return NULL;
+
+            if (pos == 0 || qs[pos - 1] == '&') {
+                qs = (char*)qs + pos + len;
+                if (*qs++ == '=') {
+                    char *src = qs,
+                          *ret;
+                    size_t sz = 0;
+                    while (*qs && *qs++ != '&')sz++;
+
+                    ret = _ffunc_alloc(&csession->pool, sz + 1);
+                    memset(ret, 0, sz + 1);
+                    return memcpy(ret, src, sz);
+                }
+                else while (*qs && *qs++ != '&');
+            }
+            else while (*qs && *qs++ != '&');
+        } while (*qs);
+    }
+    return NULL;
+}
 
 void
 ffunc_write_http_ok_status(ffunc_session_t * csession) {
@@ -982,7 +1098,7 @@ ffunc_write_json_header(ffunc_session_t * csession) {
 }
 
 void
-ffunc_destroy_pool( ffunc_pool *p ) {
+ffunc_destroy_pool(ffunc_pool *p) {
     if (p) {
         if (p->prev) {
             ffunc_destroy_pool(p->prev);
@@ -992,18 +1108,18 @@ ffunc_destroy_pool( ffunc_pool *p ) {
 }
 
 size_t
-ffunc_mem_left( ffunc_pool *p ) {
-    return (uintptr_t) p->end - (uintptr_t) p->next;
+ffunc_mem_left(ffunc_pool *p) {
+    return (uintptr_t)p->end - (uintptr_t)p->next;
 }
 
 size_t
-ffunc_mem_used( ffunc_pool *p ) {
-    return (uintptr_t) p->next - (uintptr_t) &p[1];
+ffunc_mem_used(ffunc_pool *p) {
+    return (uintptr_t)p->next - (uintptr_t)&p[1];
 }
 
 size_t
-ffunc_blk_size( ffunc_pool *p ) {
-    return (uintptr_t) p->end - (uintptr_t) (void*)&p[1];
+ffunc_blk_size(ffunc_pool *p) {
+    return (uintptr_t)p->end - (uintptr_t)(void*)&p[1];
 }
 
 static void*
@@ -1028,7 +1144,7 @@ mem_align(size_t size) //alignment => 16
 
 
 ffunc_pool*
-ffunc_create_pool( size_t size ) {
+ffunc_create_pool(size_t size) {
     ffunc_pool * p = (ffunc_pool*)mem_align(size + sizeof(ffunc_pool));
     p->next = (void*)&p[1]; //p + sizeof(ffunc_pool)
     p->end = (void*)((uintptr_t)p->next + size);
@@ -1037,39 +1153,52 @@ ffunc_create_pool( size_t size ) {
 }
 
 static ffunc_pool*
-ffunc_recreate_pool( ffunc_pool *curr_p, size_t new_size) {
+ffunc_recreate_pool(ffunc_pool *curr_p, size_t new_size) {
     ffunc_pool *newp = NULL;
     if (curr_p) {
         newp = (ffunc_pool*)ffunc_create_pool(new_size);
-        curr_p->next = newp->next;
-        curr_p->end = newp->end;
         newp->prev = curr_p;
     }
     return newp;
 }
 
-void *
-_ffunc_alloc( ffunc_pool **p, size_t size ) {
-    ffunc_pool *curr_p = *p;
-    if ( ffunc_mem_left(curr_p) < size ) {
-        size_t curr_blk_sz = ffunc_blk_size(curr_p);
-        size_t new_size = curr_blk_sz * 2;
-
-        while ( new_size < size) {
-            new_size *= 2;
+/* 1 true, 0 false */
+static int
+ffunc_get_fit_pool(ffunc_pool **p, size_t fit_size) {
+    ffunc_pool *curr_pool = *p, *prev_pool;
+    while ((prev_pool = curr_pool->prev)) {
+        if (ffunc_mem_left(prev_pool) >= fit_size) {
+            *p = prev_pool;
+            return 1;
         }
+        curr_pool = curr_pool->prev;
+    }
+    return 0;
+}
 
-        *p = curr_p = ffunc_recreate_pool(curr_p, new_size);
+void *
+_ffunc_alloc(ffunc_pool **p, size_t size) {
+    ffunc_pool *curr_p = *p;
+    if (ffunc_mem_left(curr_p) < size) {
+        if (!(ffunc_get_fit_pool(&curr_p, size))) {
+            size_t curr_blk_sz = ffunc_blk_size(curr_p);
+            size_t new_size = curr_blk_sz * 2;
+
+            while (new_size < size) {
+                new_size *= 2;
+            }
+
+            *p = curr_p = ffunc_recreate_pool(curr_p, new_size);
+        }
     }
     void *mem = (void*)curr_p->next;
-    curr_p->next = (void*) ((uintptr_t)curr_p->next +  size); // alloc new memory
+    curr_p->next = (void*)((uintptr_t)curr_p->next + size); // alloc new memory
     // memset(curr_p->next, 0, 1); // split for next
 
     return mem;
 }
 
-
-
+/* For Pool Testing purpose */
 //  int main()
 //  {
 //      ffunc_pool *thisp = ffunc_create_pool(DEFAULT_BLK_SZ);

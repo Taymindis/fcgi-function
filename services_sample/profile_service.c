@@ -38,10 +38,14 @@ FFUNC postProfile(ffunc_session_t * session) {
 	}
 }
 
-int main (int argc, char *argv[]) {
-	char* ffunc_nmap_func[] = {"getProfile", "postError", "postProfile", NULL};
-	return ffunc_main (2005, 160, 64, ffunc_nmap_func, NULL);
+int ffunc_main(int argc, char *argv[], ffunc_config_t *ffunc_conf) {
+	ffunc_conf->sock_port = 2005;
+	ffunc_conf->backlog = 160;
+	ffunc_conf->max_thread = 64;
+	ffunc_parse_function(ffunc_conf, "getProfile", "postError", "postProfile");
+	return 0;
 }
+
 
 // int memcheck(ffunc_session_t * csession) {
 // 	// printf("%s\n", "you reach here");
