@@ -151,11 +151,7 @@ Then result
 
 -- Uninstalling: /usr/local/lib/libffunc.a
 
--- Uninstalling: /usr/local/include/ffunc/ffunc_core.h
-
--- Uninstalling: /usr/local/include/ffunc/ffunc_buf.h
-
--- Uninstalling: /usr/local/include/ffunc/ffunc_pool.h
+-- Uninstalling: /usr/local/include/ffunc.h
 
 
 ## Please contact minikawoon2017@gmail.com for More End to End tier project examples.
