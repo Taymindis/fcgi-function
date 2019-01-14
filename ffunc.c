@@ -156,7 +156,6 @@ handle_request(FCGX_Request *request) {
         ffunc_write_out(_csession_, "%s\n", "For e.g nginx.conf fastcgi_param FN_HANDLER getProfile");
     }
 
-
 RELEASE_POOL:
     ffunc_destroy_pool(_csession_->pool);
     free(_csession_);
