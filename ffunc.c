@@ -35,7 +35,6 @@ static int ffunc_get_number_of_digit(long long number);
 static ffunc_pool* ffunc_recreate_pool(ffunc_pool *curr_p, size_t new_size);
 static ffunc_str_t ffunc_proc_name;
 
-
 typedef void(*h)(ffunc_session_t*);
 
 struct ffunc_handler {

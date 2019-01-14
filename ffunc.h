@@ -102,8 +102,6 @@ extern void ffunc_write_jsonp_header(ffunc_session_t * csession);
 extern void ffunc_write_json_header(ffunc_session_t * csession);
 
 
-
-
 #ifdef __cplusplus
 }
 #endif
