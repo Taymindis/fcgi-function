@@ -494,8 +494,20 @@ main(int argc, char *argv[]) {
 #include "ffunc.h"
 #include <fcgiapp.h>
 
+
+#ifdef  UNICODE 
+#define FFUNC_SPRINTF swprintf
+#define FFUNC_PRINTF wprintf
+#else
+#define FFUNC_SPRINTF sprintf_s
+#define FFUNC_PRINTF printf
+#endif
+#define ffunc_spawn_child _spawnve
+#define pipename TEXT("\\\\.\\pipe\\LogPipe")
+static TCHAR *fullPipeName = NULL;
+#define NAMED_PIPED_BUFF_SIZE 32
 #define _get_param_(KEY) FCGX_GetParam(KEY, request->envp)
-#define FFUNC_ERROR(errmsg) fprintf(stderr, "%s - %d\n", errmsg, GetLastError() )
+#define FFUNC_ERROR(errmsg) FFUNC_PRINTF(TEXT("%s - %d\n"), TEXT(errmsg), GetLastError() )
 
 int setenv(const char *name, const char *value, int overwrite) {
     int errcode = 0;
@@ -745,9 +757,6 @@ console_ctrl_handler(DWORD ctrl) {
     }
 }
 
-#define ffunc_print(...) printf ( __VA_ARGS__)
-#define ffunc_spawn_child _spawnve
-
 /**Main Hook**/
 int ffunc_hook(char **argv, ffunc_config_t *conf, int bypassmaster) {
     int sock_port = conf->sock_port;
@@ -756,25 +765,27 @@ int ffunc_hook(char **argv, ffunc_config_t *conf, int bypassmaster) {
     char** ffunc_nmap_func = conf->ffunc_nmap_func;
     size_t max_read_buffer = conf->max_read_buffer;
     char* exec_name = conf->__exec_name;
+	int totalPipeLength;
+	TCHAR *pipenamebuff;
 
 
     if (sock_port <= 0) {
-        ffunc_print("%s\n", "sock_port has no defined...");
+		FFUNC_PRINTF(TEXT("%s\n"), TEXT("sock_port has no defined..."));
         return 1;
     }
 
     if (max_thread <= 0) {
-        ffunc_print("%s\n", "max_thread has no defined...");
+        FFUNC_PRINTF(TEXT("%s\n"), TEXT("max_thread has no defined..."));
         return 1;
     }
 
     if (backlog <= 0) {
-        ffunc_print("%s\n", "backlog has no defined...");
+        FFUNC_PRINTF(TEXT("%s\n"), TEXT("backlog has no defined..."));
         return 1;
     }
 
     if (!ffunc_nmap_func[0]) {
-        ffunc_print("%s\n", "ffunc_nmap_func has no defined...");
+        FFUNC_PRINTF(TEXT("%s\n"), TEXT("ffunc_nmap_func has no defined..."));
         return 1;
     }
 
@@ -803,6 +814,32 @@ SPAWN_CHILD_PROC:
          *backlog_str,
          *max_thread_str,
          *max_read_buffer_str;
+
+	DWORD parentPid = GetCurrentProcessId();
+	HANDLE pipe;
+
+	if (parentPid < 0) {
+		FFUNC_PRINTF(TEXT("%s\n"), TEXT("invalid pid"));
+		return 1;
+	}
+	else {
+		totalPipeLength = ffunc_get_number_of_digit(parentPid) + sizeof(pipename);
+		pipenamebuff = (TCHAR*)calloc(totalPipeLength, sizeof(TCHAR));
+		FFUNC_SPRINTF(pipenamebuff, totalPipeLength, TEXT("%s%d"), pipename, parentPid);
+		pipe  = CreateNamedPipe(pipenamebuff, PIPE_ACCESS_INBOUND | PIPE_ACCESS_OUTBOUND, PIPE_WAIT, 1, 
+			NAMED_PIPED_BUFF_SIZE, 	NAMED_PIPED_BUFF_SIZE, 120 * 1000, NULL);
+		if (pipe == INVALID_HANDLE_VALUE) {
+			FFUNC_PRINTF(TEXT("Error: %d"), GetLastError());
+		}
+#ifdef UNICODE
+		char *toCharPipe = calloc(totalPipeLength + 1, sizeof(char));
+		size_t   i;
+		wcstombs_s(&i, toCharPipe, totalPipeLength, pipenamebuff, totalPipeLength);
+		FFUNC_SETENV("_FFUNC_PID_NAMED_PIPE", toCharPipe, 1);
+#else
+		FFUNC_SETENV("_FFUNC_PID_NAMED_PIPE", pipenamebuff, 1);
+#endif
+	}
 
     if (sock_port != 0) {
         sockport_str = malloc((ffunc_get_number_of_digit(sock_port) + 1) * sizeof(char));
@@ -844,7 +881,7 @@ SPAWN_CHILD_PROC:
     func_str[func_str_sz] = (char)0;
 
     FFUNC_SETENV("_FFUNC_ENV_FUNC_str", func_str, 1);
-    // ffunc_print("func_str = %s\n", func_str);
+    // FFUNC_PRINTF("func_str = %s\n", func_str);
 
     // Change command line to worker
     if ((strlen(exec_name) + (sizeof(_FFUNC_WORKER_) - 1)) <= strlen(argv[0])) {
@@ -855,7 +892,18 @@ SPAWN_CHILD_PROC:
 FFUNC_WORKER_RESTART:
     if (exec_name) {
         FFUNC_EXECVE(_P_WAIT, exec_name, argv, environ);
-        goto FFUNC_WORKER_RESTART;
+		char data[NAMED_PIPED_BUFF_SIZE];
+		DWORD numRead;
+		//ConnectNamedPipe(pipe, NULL);
+		if (PeekNamedPipe(pipe, NULL, 0, NULL, &numRead, NULL)) {
+			if (0 != numRead) {
+				ReadFile(pipe, data, 1024, &numRead, NULL);
+				goto FFUNC_WORKER_RESTART;
+			}
+		}
+
+		CloseHandle(pipe);
+
     }
     else {
         FFUNC_ERROR("Error: Exec name not found ");
@@ -868,10 +916,10 @@ FFUNC_WORKER_RESTART:
 
 CONTINUE_CHILD_PROCESS:
 
-    ffunc_print("%s\n", "Service starting");
-    ffunc_print("Socket port on hook %d\n", sock_port);
-    ffunc_print("backlog=%d\n", backlog);
-    ffunc_print("%d threads \n", max_thread);
+    FFUNC_PRINTF(TEXT("%s\n"), TEXT("Service starting"));
+    FFUNC_PRINTF(TEXT("Socket port on hook %d\n"), sock_port);
+    FFUNC_PRINTF(TEXT("backlog=%d\n"), backlog);
+    FFUNC_PRINTF(TEXT("%d threads \n"), max_thread);
     fprintf(stderr, "%s\n", "Press Ctrl-C to terminate the process....");
     return hook_socket(sock_port, backlog, max_thread, ffunc_nmap_func);
 }
@@ -883,7 +931,7 @@ ffunc_thread_worker(void* wrker) {
 
     FCGX_Request request;
     if (FCGX_InitRequest(&request, worker_t->fcgi_func_socket, FCGI_FAIL_ACCEPT_ON_INTR) != 0) {
-        ffunc_print("%s\n", "Can not init request");
+        FFUNC_PRINTF(TEXT("%s\n"), TEXT("Can not init request"));
         return 0;
     }
     while (1) {
@@ -891,7 +939,7 @@ ffunc_thread_worker(void* wrker) {
         rc = FCGX_Accept_r(&request);
         ReleaseMutex(&worker_t->accept_mutex);
         if (rc < 0) {
-            ffunc_print("%s\n", "Cannot accept new request");
+            FFUNC_PRINTF(TEXT("%s\n"), TEXT("Cannot accept new request"));
             FCGX_Finish_r(&request); // this will free all the fcgiparams memory and request
             continue;
         }
@@ -903,6 +951,32 @@ ffunc_thread_worker(void* wrker) {
 
 static int
 hook_socket(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func) {
+	char *_pipeName;
+// #define MAX_PIPE_SIZE 256
+	// TCHAR *pipeName;
+	HANDLE pipe;
+	if (! (_pipeName = FFUNC_GETENV("_FFUNC_PID_NAMED_PIPE"))) {
+		FFUNC_PRINTF(TEXT("%s\n"), TEXT("Failed getting _FFUNC_PID_NAMED_PIPE"));
+		return -1;
+	}
+
+/*
+#ifdef UNICODE
+	size_t szi;
+	pipeName = calloc(MAX_PIPE_SIZE, sizeof(TCHAR));
+	int numConverted = mbstowcs_s(&szi, pipeName, MAX_PIPE_SIZE, _pipeName, MAX_PIPE_SIZE);
+#else
+	pipeName = _pipeName;
+#endif
+*/
+
+	//FFUNC_PRINTF(TEXT("PIPENAME IS %s"), pipeName);
+	pipe = CreateFileA(_pipeName, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+	if (pipe == INVALID_HANDLE_VALUE) {
+		FFUNC_ERROR("Create file FAILED");
+		return -1;
+	}
+
     FCGX_Init();
     if (!ffunc_init(ffunc_nmap_func)) {
         exit(1);
@@ -925,14 +999,19 @@ hook_socket(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func) 
             worker_t->fcgi_func_socket = FCGX_OpenSocket(port_str, 50);
     }
     else {
-        ffunc_print("%s\n", "argument wrong");
+        FFUNC_PRINTF(TEXT("%s\n"), TEXT("argument wrong"));
         exit(1);
     }
 
     if (worker_t->fcgi_func_socket < 0) {
-        ffunc_print("%s\n", "unable to open the socket");
+        FFUNC_PRINTF(TEXT("%s\n"), TEXT("unable to open the socket"));
         exit(1);
     }
+
+	/* Release of successfully initialized */
+	DWORD numWritten;
+	WriteFile(pipe, TEXT("DONE"), sizeof(TEXT("DONE")), &numWritten, NULL);
+	CloseHandle(pipe);
 
     HANDLE  *pth_workers = calloc(max_thread, sizeof(HANDLE));
     for (i = 0; i < max_thread; i++) {
@@ -943,7 +1022,7 @@ hook_socket(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func) 
         WaitForSingleObject(pth_workers[i], INFINITE);
     }
     free(pth_workers);
-    ffunc_print("%s\n", "Exiting");
+    FFUNC_PRINTF(TEXT("%s\n"), TEXT("Exiting"));
     return EXIT_SUCCESS;
 }
 
@@ -1149,12 +1228,12 @@ mem_align(size_t size) //alignment => 16
     int    err;
     err = posix_memalign(&p, ALIGNMENT, size);
     if (err) {
-        ffunc_print("posix_memalign(%uz, %uz) failed \n", ALIGNMENT, size);
+       // FFUNC_PRINTF("posix_memalign(%uz, %uz) failed \n", ALIGNMENT, size);
         p = NULL;
     }
-    ffunc_print("posix_memalign: %p:%uz @%uz \n", p, size, ALIGNMENT);
+  //  FFUNC_PRINTF("posix_memalign: %p:%uz @%uz \n", p, size, ALIGNMENT);
 #else
-    // ffunc_print("%s\n", "Using Malloc");
+    // FFUNC_PRINTF("%s\n", "Using Malloc");
     p = malloc(size);
 
 #endif
