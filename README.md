@@ -13,7 +13,7 @@ Due to built in logging mechanism will slow down the process speed, suggested to
 fcgi Function is a C/CPP language based interface, which build on top of FastCGI with built in functional handler support, it also provided useful collection tools to enhance the facilities. It can be integrated with Nginx Fastcgi module
 
 ## How it works
-![Image of simpleflow](/images/simple-flow.png)
+![Image of architecture](/images/fcgi_func_architecture.png)
 
 
 ## Prerequisition Installed
