@@ -56,7 +56,7 @@ static size_t max_std_input_buffer;
 static int ffunc_init(char** ffunc_nmap_func);
 static int ffunc_strpos(const char *haystack, const char *needle);
 void *ffunc_thread_worker(void* wrker);
-static int hook_socket(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func);
+static int hook_socket(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func, int* procpip);
 static void ffunc_add_signal_handler(void);
 static void handle_request(FCGX_Request *request);
 static size_t ffunc_read_body_limit(ffunc_session_t * csession, ffunc_str_t *content);
@@ -296,12 +296,7 @@ FFUNC_WORKER_RESTART:
             if (conf->app_init_handler) {
                 conf->app_init_handler();
             }
-            read(procpip[0], pipbuf, FFUNC_APP_INIT_PIPE_BUF_SIZE);
-            write(procpip[1], FFUNC_APP_INITIALIZED, FFUNC_APP_INIT_PIPE_BUF_SIZE);
-            close(procpip[0]);
-            close(procpip[1]);
-
-            return hook_socket(sock_port, backlog, max_thread, ffunc_nmap_func);
+            return hook_socket(sock_port, backlog, max_thread, ffunc_nmap_func, procpip);
         }
         else { // Parent process
             while (1) {
@@ -357,7 +352,8 @@ ffunc_thread_worker(void* wrker) {
 }
 
 static int
-hook_socket(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func) {
+hook_socket(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func, int* procpip) {
+    char pipbuf[FFUNC_APP_INIT_PIPE_BUF_SIZE];
     FCGX_Init();
     if (!ffunc_init(ffunc_nmap_func)) {
         exit(1);
@@ -391,6 +387,12 @@ hook_socket(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func) 
 
     ffunc_print("%d threads \n", max_thread);
     ffunc_print("Socket on hook %d\n", sock_port);
+
+    /** Release for success initialized **/
+    read(procpip[0], pipbuf, FFUNC_APP_INIT_PIPE_BUF_SIZE);
+    write(procpip[1], FFUNC_APP_INITIALIZED, FFUNC_APP_INIT_PIPE_BUF_SIZE);
+    close(procpip[0]);
+    close(procpip[1]);
 
     pthread_t pth_workers[max_thread];
     for (i = 0; i < max_thread; i++) {
