@@ -72,6 +72,11 @@ extern size_t ffunc_mem_left(ffunc_pool *p);
 extern size_t ffunc_mem_used(ffunc_pool *p);
 extern size_t ffunc_blk_size(ffunc_pool *p);
 
+extern int ffunc_main(int argc, char *argv[], ffunc_config_t *ffunc_conf);
+extern char *ffunc_strdup(ffunc_session_t * csession, const char *str, size_t len);
+extern size_t(*ffunc_read_body)(ffunc_session_t *, ffunc_str_t *);
+extern void* ffunc_get_query_param(ffunc_session_t * csession, const char *key, size_t len);
+
 #define ffunc_parse_function(ffconf_, ...) do { \
 const char *_ffunc_nmap_func[] = {__VA_ARGS__, NULL}; \
 unsigned int i=0, j; \
@@ -85,21 +90,17 @@ char *x =(char*) malloc(len); \
 (ffconf_)->ffunc_nmap_func[i] = NULL; \
 } while(0)
 
-extern int ffunc_main(int argc, char *argv[], ffunc_config_t *ffunc_conf);
 #define ffunc_write_out(_csession, ...) FCGX_FPrintF(_csession->request->out, __VA_ARGS__)
 #define ffunc_get_fcgi_param(_csession, constkey) FCGX_GetParam(constkey, _csession->request->envp)
 #define ffunc_alloc(ffunc_session_t, sz) _ffunc_alloc(&ffunc_session_t->pool, sz)
-extern char *ffunc_strdup(ffunc_session_t * csession, const char *str, size_t len);
 
-extern size_t(*ffunc_read_body)(ffunc_session_t *, ffunc_str_t *);
-extern void* ffunc_get_query_param(ffunc_session_t * csession, const char *key, size_t len);
-extern void ffunc_write_http_ok_status(ffunc_session_t * csession);
-extern void ffunc_write_http_not_found_status(ffunc_session_t * csession);
-extern void ffunc_write_http_internal_error_status(ffunc_session_t * csession);
-extern void ffunc_write_http_no_content_status(ffunc_session_t * csession);
-extern void ffunc_write_default_header(ffunc_session_t * csession);
-extern void ffunc_write_jsonp_header(ffunc_session_t * csession);
-extern void ffunc_write_json_header(ffunc_session_t * csession);
+#define ffunc_write_http_ok_status(_csession) ffunc_write_out(_csession, "Status: 200 OK\r\n")
+#define ffunc_write_http_not_found_status(_csession) ffunc_write_out(_csession, "Status: 404 Not Found\r\n")
+#define ffunc_write_http_internal_error_status(_csession) ffunc_write_out(_csession, "Status: 500 Internal Server Error\r\n")
+#define ffunc_write_http_no_content_status(_csession) ffunc_write_out(_csession, "Status: 204 No Content\r\n")
+#define ffunc_write_default_header(_csession) ffunc_write_out(_csession, "Content-Type: application/x-www-form-urlencoded\r\n\r\n")
+#define ffunc_write_jsonp_header(_csession) ffunc_write_out(_csession, "Content-Type: application/javascript\r\n\r\n")
+#define ffunc_write_json_header(_csession) ffunc_write_out(_csession, "Content-Type: application/json\r\n\r\n")
 
 #ifdef __cplusplus
 }

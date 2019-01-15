@@ -42,6 +42,7 @@ int ffunc_main(int argc, char *argv[], ffunc_config_t *ffunc_conf) {
 	ffunc_conf->sock_port = 2005;
 	ffunc_conf->backlog = 160;
 	ffunc_conf->max_thread = 64;
+	// ffunc_conf->daemon = 1;
 	ffunc_parse_function(ffunc_conf, "getProfile", "postError", "postProfile");
 	return 0;
 }
