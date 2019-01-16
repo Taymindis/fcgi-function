@@ -61,11 +61,13 @@ static void ffunc_add_signal_handler(void);
 static void handle_request(FCGX_Request *request);
 static size_t ffunc_read_body_limit(ffunc_session_t * csession, ffunc_str_t *content);
 static size_t ffunc_read_body_nolimit(ffunc_session_t * csession, ffunc_str_t *content);
+static void ffunc_default_direct_consume(ffunc_session_t *sess);
 static int  has_init_signal = 0;
 static struct sigaction sa;
 static void *usr_req_handle;
 // extern declaration
 size_t(*ffunc_read_body)(ffunc_session_t *, ffunc_str_t *);
+void(*_ffunc_direct_consume)(ffunc_session_t *);
 
 static int
 ffunc_init(char** ffunc_nmap_func) {
@@ -87,7 +89,7 @@ ffunc_init(char** ffunc_nmap_func) {
         // szof_func_name = strlen(ffunc_nmap_func[f]);
         dyna_funcs[f].name = ffunc_nmap_func[f]; //(char*) calloc(szof_func_name + 1, sizeof(char));
 
-        // memcpy(dyna_funcs[f].name, ffunc_nmap_func[f], szof_func_name);
+                                                 // memcpy(dyna_funcs[f].name, ffunc_nmap_func[f], szof_func_name);
         dyna_funcs[f].len = strlen(ffunc_nmap_func[f]);
         *(void **)(&dyna_funcs[f].handle) = dlsym(usr_req_handle, ffunc_nmap_func[f]);
 
@@ -96,6 +98,15 @@ ffunc_init(char** ffunc_nmap_func) {
             ffunc_print("%s\n", "Have you included -rdynamic in your compiler option, for e.g gcc ... -rdynamic");
             return 0;
         }
+    }
+
+    *(void **)(&_ffunc_direct_consume) = dlsym(usr_req_handle, "ffunc_direct_consume");
+    if ((error = dlerror()) != NULL) {
+        ffunc_print("%s\n", "direct consume disabled");
+        _ffunc_direct_consume = &ffunc_default_direct_consume;
+    }
+    else {
+        ffunc_print("%s\n", "direct consume enabled");
     }
     return 1;
 }
@@ -119,8 +130,8 @@ ffunc_strdup(ffunc_session_t * csession, const char *str, size_t len) {
 static void
 handle_request(FCGX_Request *request) {
     char *value,
-         *qparam,
-         *query_string;
+        *qparam,
+        *query_string;
 
     ffunc_pool *p = ffunc_create_pool(DEFAULT_BLK_SZ);
     ffunc_session_t *_csession_ = (ffunc_session_t*)malloc(sizeof(ffunc_session_t));
@@ -148,12 +159,16 @@ handle_request(FCGX_Request *request) {
                 goto RELEASE_POOL;
             }
         }
+        ffunc_default_direct_consume(_csession_);
     }
     else {
-        ffunc_write_out(_csession_, "Content-Type: text/plain\r\n\r\n");
-        ffunc_write_out(_csession_, "%s\n", "FN_HANDLER not found");
-        ffunc_write_out(_csession_, "%s\n", "Please provide your FN_HANDLER in your config file");
-        ffunc_write_out(_csession_, "%s\n", "For e.g nginx.conf fastcgi_param FN_HANDLER getProfile");
+        if ((qparam = _get_param_("QUERY_STRING"))) {
+            query_string = ffunc_strdup(_csession_, qparam, strlen(qparam));
+            if (query_string && query_string[0]) {
+                _csession_->query_str = query_string;//parse_json_fr_args(query_string);
+            }
+        }
+        _ffunc_direct_consume(_csession_);
     }
 
 RELEASE_POOL:
@@ -454,22 +469,24 @@ main(int argc, char *argv[]) {
     int status;
 
     if (FFUNC_GETENV(_FFUNC_MASTER_ENV)) {
-        conf = calloc(1, sizeof(ffunc_config_t));
+        conf = (ffunc_config_t*)calloc(1, sizeof(ffunc_config_t));
 
         ffunc_proc_name.data = argv[0];
         ffunc_proc_name.len = strlen(argv[0]);
 
         if ((status = ffunc_main(argc, argv, conf)) == 0) {
             return ffunc_hook(conf);
-        } else {
+        }
+        else {
             fprintf(stderr, "Error status %d, status return is not successful(0) \n", status);
             return status;
         }
-    } else {
+    }
+    else {
         FFUNC_SETENV(_FFUNC_MASTER_ENV, argv[0], 1);
-        new_argv = calloc(argc + 1, sizeof(char*));
+        new_argv = (char **)calloc(argc + 1, sizeof(char*));
         size_t arg$0sz = strlen(argv[0]);
-        new_argv[0] = calloc(arg$0sz + sizeof(_FFUNC_MASTER_), sizeof(char));
+        new_argv[0] = (char *)calloc(arg$0sz + sizeof(_FFUNC_MASTER_), sizeof(char));
         memcpy(new_argv[0], argv[0], arg$0sz);
         memcpy(new_argv[0] + arg$0sz, _FFUNC_MASTER_, sizeof(_FFUNC_MASTER_) - 1);
 
@@ -567,11 +584,13 @@ static void ffunc_add_signal_handler(void);
 static void handle_request(FCGX_Request *request);
 static size_t ffunc_read_body_limit(ffunc_session_t * csession, ffunc_str_t *content);
 static size_t ffunc_read_body_nolimit(ffunc_session_t * csession, ffunc_str_t *content);
+static void ffunc_default_direct_consume(ffunc_session_t *sess);
 static int  has_init_signal = 0;
 static HINSTANCE usr_req_handle;
 
 // extern declaration
 size_t(*ffunc_read_body)(ffunc_session_t *, ffunc_str_t *);
+h _ffunc_direct_consume;
 
 // static void*
 // read_t(void *origin) {
@@ -613,6 +632,15 @@ ffunc_init(char** ffunc_nmap_func) {
             return EXIT_FAILURE;
         }
     }
+
+    _ffunc_direct_consume = (h)GetProcAddress(usr_req_handle, "ffunc_direct_consume");
+    if (!_ffunc_direct_consume) {
+        FFUNC_PRINTF(TEXT("direct consume is disabled"));
+        _ffunc_direct_consume = &ffunc_default_direct_consume;
+    }
+    else {
+        FFUNC_PRINTF(TEXT("direct consume is enabled"));
+    }
     return 1;
 }
 
@@ -635,8 +663,8 @@ ffunc_strdup(ffunc_session_t * csession, const char *str, size_t len) {
 static void
 handle_request(FCGX_Request *request) {
     char *value,
-         *qparam,
-         *query_string;
+        *qparam,
+        *query_string;
 
     ffunc_pool *p = ffunc_create_pool(DEFAULT_BLK_SZ);
     ffunc_session_t *_csession_ = (ffunc_session_t *)malloc(sizeof(ffunc_session_t));
@@ -666,12 +694,16 @@ handle_request(FCGX_Request *request) {
                 goto RELEASE_POOL;
             }
         }
+        ffunc_default_direct_consume(_csession_);
     }
     else {
-        ffunc_write_out(_csession_, "Content-Type: text/plain\r\n\r\n");
-        ffunc_write_out(_csession_, "%s\n", "FN_HANDLER not found");
-        ffunc_write_out(_csession_, "%s\n", "Please provide your FN_HANDLER in your config file");
-        ffunc_write_out(_csession_, "%s\n", "For e.g nginx.conf fastcgi_param FN_HANDLER getProfile");
+        if ((qparam = _get_param_("QUERY_STRING"))) {
+            query_string = ffunc_strdup(_csession_, qparam, strlen(qparam));
+            if (query_string && query_string[0]) {
+                _csession_->query_str = query_string;//parse_json_fr_args(query_string);
+            }
+        }
+        _ffunc_direct_consume(_csession_);
     }
 
 
@@ -811,9 +843,9 @@ SPAWN_CHILD_PROC:
 
     SIZE_T i;
     char *sockport_str,
-         *backlog_str,
-         *max_thread_str,
-         *max_read_buffer_str;
+        *backlog_str,
+        *max_thread_str,
+        *max_read_buffer_str;
 
     DWORD parentPid = GetCurrentProcessId();
     HANDLE pipe;
@@ -826,8 +858,8 @@ SPAWN_CHILD_PROC:
         totalPipeLength = ffunc_get_number_of_digit(parentPid) + sizeof(pipename);
         pipenamebuff = (TCHAR*)calloc(totalPipeLength, sizeof(TCHAR));
         FFUNC_SPRINTF(pipenamebuff, totalPipeLength, TEXT("%s%d"), pipename, parentPid);
-        pipe  = CreateNamedPipe(pipenamebuff, PIPE_ACCESS_INBOUND | PIPE_ACCESS_OUTBOUND, PIPE_WAIT, 1,
-                                NAMED_PIPED_BUFF_SIZE,  NAMED_PIPED_BUFF_SIZE, 120 * 1000, NULL);
+        pipe = CreateNamedPipe(pipenamebuff, PIPE_ACCESS_INBOUND | PIPE_ACCESS_OUTBOUND, PIPE_WAIT, 1,
+            NAMED_PIPED_BUFF_SIZE, NAMED_PIPED_BUFF_SIZE, 120 * 1000, NULL);
         if (pipe == INVALID_HANDLE_VALUE) {
             FFUNC_PRINTF(TEXT("Error: %d"), GetLastError());
         }
@@ -875,8 +907,8 @@ SPAWN_CHILD_PROC:
     char *func_str = malloc((func_str_sz + 1) * sizeof(char));
     char* p = func_str;
     for (i = 0; ffunc_nmap_func[i]; i++) {
-        p = (char*) (memcpy(p, ffunc_nmap_func[i], strlen(ffunc_nmap_func[i]))) + strlen(ffunc_nmap_func[i]);
-        p = (char*) (memcpy(p, "\",\" ", sizeof("\",\" ") - 1 )) + (sizeof("\",\" ") - 1);
+        p = (char*)(memcpy(p, ffunc_nmap_func[i], strlen(ffunc_nmap_func[i]))) + strlen(ffunc_nmap_func[i]);
+        p = (char*)(memcpy(p, "\",\" ", sizeof("\",\" ") - 1)) + (sizeof("\",\" ") - 1);
     }
     func_str[func_str_sz] = (char)0;
 
@@ -952,22 +984,22 @@ ffunc_thread_worker(void* wrker) {
 static int
 hook_socket(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func) {
     char *_pipeName;
-// #define MAX_PIPE_SIZE 256
+    // #define MAX_PIPE_SIZE 256
     // TCHAR *pipeName;
     HANDLE pipe;
-    if (! (_pipeName = FFUNC_GETENV("_FFUNC_PID_NAMED_PIPE"))) {
+    if (!(_pipeName = FFUNC_GETENV("_FFUNC_PID_NAMED_PIPE"))) {
         FFUNC_PRINTF(TEXT("%s\n"), TEXT("Failed getting _FFUNC_PID_NAMED_PIPE"));
         return -1;
     }
 
     /*
-#ifdef UNICODE
-        size_t szi;
-        pipeName = calloc(MAX_PIPE_SIZE, sizeof(TCHAR));
-        int numConverted = mbstowcs_s(&szi, pipeName, MAX_PIPE_SIZE, _pipeName, MAX_PIPE_SIZE);
-#else
-        pipeName = _pipeName;
-#endif
+    #ifdef UNICODE
+    size_t szi;
+    pipeName = calloc(MAX_PIPE_SIZE, sizeof(TCHAR));
+    int numConverted = mbstowcs_s(&szi, pipeName, MAX_PIPE_SIZE, _pipeName, MAX_PIPE_SIZE);
+    #else
+    pipeName = _pipeName;
+    #endif
     */
 
     //FFUNC_PRINTF(TEXT("PIPENAME IS %s"), pipeName);
@@ -1034,16 +1066,16 @@ main(int argc, char *argv[]) {
     int status;
     char* exec_name;
     char *sockport_str,
-         *backlog_str,
-         *max_thread_str,
-         *max_read_buffer_str,
-         *func_str;
+        *backlog_str,
+        *max_thread_str,
+        *max_read_buffer_str,
+        *func_str;
 
     if ((sockport_str = FFUNC_GETENV("_FFUNC_ENV_SOCK_PORT")) &&
-            (backlog_str = FFUNC_GETENV("_FFUNC_ENV_BACKLOG")) &&
-            (max_thread_str = FFUNC_GETENV("_FFUNC_ENV_MAX_THREAD")) &&
-            (func_str = FFUNC_GETENV("_FFUNC_ENV_FUNC_str"))
-       ) {
+        (backlog_str = FFUNC_GETENV("_FFUNC_ENV_BACKLOG")) &&
+        (max_thread_str = FFUNC_GETENV("_FFUNC_ENV_MAX_THREAD")) &&
+        (func_str = FFUNC_GETENV("_FFUNC_ENV_FUNC_str"))
+        ) {
         conf = calloc(1, sizeof(ffunc_config_t));
         conf->sock_port = atoi(sockport_str);
         conf->backlog = atoi(backlog_str);
@@ -1112,6 +1144,14 @@ main(int argc, char *argv[]) {
 #endif
 #endif
 
+static void
+ffunc_default_direct_consume(ffunc_session_t *sess) {
+    ffunc_write_out(sess, "Content-Type: text/plain\r\n\r\n");
+    ffunc_write_out(sess, "%s\n", "FN_HANDLER not found, ffunc_direct_consume not found");
+    ffunc_write_out(sess, "%s\n", "Please provide your FN_HANDLER in your config file, else provide \"ffunc_direct_consume(ffunc_session_t *sess){}\" to customize your inputs");
+    ffunc_write_out(sess, "%s\n", "For e.g nginx.conf fastcgi_param FN_HANDLER getProfile");
+}
+
 static int
 ffunc_get_number_of_digit(long long number) {
     int count = 0;
@@ -1126,7 +1166,7 @@ ffunc_get_number_of_digit(long long number) {
 static int
 ffunc_strpos(const char *haystack, const char *needle)
 {
-    char *p = strstr(haystack, needle);
+    char *p = strstr((char*)haystack, needle);
     if (p)
         return p - haystack;
     return -1;   // Not found = -1.
@@ -1144,11 +1184,11 @@ ffunc_get_query_param(ffunc_session_t * csession, const char *key, size_t len) {
                 qs = (char*)qs + pos + len;
                 if (*qs++ == '=') {
                     char *src = qs,
-                          *ret;
+                        *ret;
                     size_t sz = 0;
                     while (*qs && *qs++ != '&')sz++;
 
-                    ret = _ffunc_alloc(&csession->pool, sz + 1);
+                    ret = (char *)_ffunc_alloc(&csession->pool, sz + 1);
                     memset(ret, 0, sz + 1);
                     return memcpy(ret, src, sz);
                 }
@@ -1256,7 +1296,7 @@ _ffunc_alloc(ffunc_pool **p, size_t size) {
     }
     void *mem = (void*)curr_p->next;
     curr_p->next = (void*)((uintptr_t)curr_p->next + size); // alloc new memory
-    // memset(curr_p->next, 0, 1); // split for next
+                                                            // memset(curr_p->next, 0, 1); // split for next
 
     return mem;
 }

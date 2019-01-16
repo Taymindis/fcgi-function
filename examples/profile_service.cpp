@@ -57,7 +57,7 @@ FFUNC postProfile(ffunc_session_t * session) {
 	if(ffunc_read_body(session, &payload) ) {
 		ffunc_write_out(session, "Status: 200 OK\r\n");
 		ffunc_write_out(session, "Content-Type: application/x-www-form-urlencoded\r\n\r\n");
-		ffunc_write_out(session, "Query String %s\n", session->query_str);
+		ffunc_write_out(session, "Query String %s\n", session->query_str?session->query_str:"");
 		ffunc_write_out(session, "Body %s\n", payload.data);
 	}
 

@@ -33,8 +33,21 @@ FFUNC postProfile(ffunc_session_t * session) {
 		printf("the sz is = %ld\n", payload.len);
 		ffunc_write_out(session, "Status: 200 OK\r\n");
 		ffunc_write_out(session, "Content-Type: application/x-www-form-urlencoded\r\n\r\n");
-		ffunc_write_out(session, "Query String %s\n", session->query_str);
+		ffunc_write_out(session, "Query String %s\n", session->query_str?session->query_str:"");
 		ffunc_write_out(session, "Body %s\n", payload.data);
+	}
+}
+
+/* if this function given, whatever function not provided in nginx, it will go to this consume to let user handle the function */
+FFUNC ffunc_direct_consume(ffunc_session_t * session) {
+	// not need to free, csession handle it
+	ffunc_str_t payload;
+	if( ffunc_read_body(session, &payload) ) {
+		printf("the sz is = %ld\n", payload.len);
+		ffunc_write_out(session, "Status: 200 OK\r\n");
+		ffunc_write_out(session, "Content-Type: application/x-www-form-urlencoded\r\n\r\n");
+		ffunc_write_out(session, "Query String %s\n", session->query_str?session->query_str:"");
+		ffunc_write_out(session, "Body %.*s\n", payload.len, payload.data);
 	}
 }
 

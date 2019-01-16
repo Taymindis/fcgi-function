@@ -32,50 +32,52 @@ extern "C" {
 #define DEFAULT_BLK_SZ 2048
 #define ALIGNMENT   16
 
-typedef struct pool {
-	void *next,
-		*end;
-	struct pool *prev;
-} ffunc_pool;
+	typedef struct pool {
+		void *next,
+			*end;
+		struct pool *prev;
+	} ffunc_pool;
 
-typedef struct {
-	ffunc_pool *pool;
-	char *query_str;
-	FCGX_Request *request;
-} ffunc_session_t;
+	typedef struct {
+		ffunc_pool *pool;
+		char *query_str;
+		FCGX_Request *request;
+	} ffunc_session_t;
 
-typedef struct {
-	char *data;
-	size_t len;
-} ffunc_str_t;
+	typedef struct {
+		char *data;
+		size_t len;
+	} ffunc_str_t;
 
-typedef struct {
-	int sock_port;
-	int backlog;
-	int max_thread;
-	char** ffunc_nmap_func;
-	size_t max_read_buffer;
+	typedef struct {
+		int sock_port;
+		int backlog;
+		int max_thread;
+		char** ffunc_nmap_func;
+		size_t max_read_buffer;
 
 #if defined __GNUC__ || defined __CYGWIN__ || defined __MINGW32__ || defined __APPLE__
-	void(*app_init_handler)(void);
-	int daemon;
+		void(*app_init_handler)(void);
+		int daemon;
 #endif
 
-	/* DO NOT USE THE VARIABLE BELOW */
-	char* __exec_name;
-} ffunc_config_t;
+		/* DO NOT USE THE VARIABLE BELOW */
+		char* __exec_name;
+	} ffunc_config_t;
 
-extern ffunc_pool* ffunc_create_pool(size_t size);
-extern void ffunc_destroy_pool(ffunc_pool *p);
-extern void * _ffunc_alloc(ffunc_pool **p, size_t size);
-extern size_t ffunc_mem_left(ffunc_pool *p);
-extern size_t ffunc_mem_used(ffunc_pool *p);
-extern size_t ffunc_blk_size(ffunc_pool *p);
+	extern ffunc_pool* ffunc_create_pool(size_t size);
+	extern void ffunc_destroy_pool(ffunc_pool *p);
+	extern void * _ffunc_alloc(ffunc_pool **p, size_t size);
+	extern size_t ffunc_mem_left(ffunc_pool *p);
+	extern size_t ffunc_mem_used(ffunc_pool *p);
+	extern size_t ffunc_blk_size(ffunc_pool *p);
 
-extern int ffunc_main(int argc, char *argv[], ffunc_config_t *ffunc_conf);
-extern char *ffunc_strdup(ffunc_session_t * csession, const char *str, size_t len);
-extern size_t(*ffunc_read_body)(ffunc_session_t *, ffunc_str_t *);
-extern void* ffunc_get_query_param(ffunc_session_t * csession, const char *key, size_t len);
+	extern int ffunc_main(int argc, char *argv[], ffunc_config_t *ffunc_conf);
+	/* direct consume will be trigger if not function given, it let user self handling the request */
+	FFUNC ffunc_direct_consume(ffunc_session_t *);
+	extern char *ffunc_strdup(ffunc_session_t * csession, const char *str, size_t len);
+	extern size_t(*ffunc_read_body)(ffunc_session_t *, ffunc_str_t *);
+	extern void* ffunc_get_query_param(ffunc_session_t * csession, const char *key, size_t len);
 
 #define ffunc_parse_function(ffconf_, ...) do { \
 const char *_ffunc_nmap_func[] = {__VA_ARGS__, NULL}; \
