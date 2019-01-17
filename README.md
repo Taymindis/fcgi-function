@@ -23,7 +23,7 @@ fcgi library -- https://github.com/FastCGI-Archives/FastCGI.com
 
 cmake and make
 
-### Supported OS: LINUX, MAC OSX
+### Supported OS: LINUX, MAC OSX, and Windows
 
 ## Clone the Repository Recursively
 git clone --recursive https://github.com/Taymindis/fcgi-function.git
