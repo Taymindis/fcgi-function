@@ -22,7 +22,9 @@ git clone --recursive https://github.com/Taymindis/fcgi-function.git
 ### Just Include ffunc.h and ffunc.c in your project, simplest way ( applicable to Linux, Darwin and Windows platforms )
 #### Build sample 
 > gcc profile_service.c ffunc.c ffunc.h -lfcgi -pthread -ldl -rdynamic
+
 > g++ profile_service.cpp ffunc.c ffunc.h -lfcgi -pthread -ldl -rdynamic
+
 > g++ -std=c++11 -I/home/xxx/cpplib/spdlog-0.17.0/include -DSPDLOG_FMT_PRINTF service_with_spdlog.cpp ffunc.c ffunc.h -lfcgi -pthread -ldl -rdynamic
 
 ### when you type 
