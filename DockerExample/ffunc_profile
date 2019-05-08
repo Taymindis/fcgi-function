@@ -1,0 +1,19 @@
+location /getProfile {
+  add_header Allow "GET, POST, HEAD" always;
+  if ( $request_method !~ ^(GET|HEAD)$ ) {
+    return 405;
+  }
+  include /etc/nginx/fastcgi_params;
+  fastcgi_param FN_HANDLER getProfile;
+  fastcgi_pass 127.0.0.1:2005;
+}
+
+location /postProfile {
+  add_header Allow "GET, POST, HEAD" always;
+  if ( $request_method !~ ^(POST)$ ) {
+    return 405;
+  }
+   include /etc/nginx/fastcgi_params;
+  fastcgi_param FN_HANDLER postProfile;
+  fastcgi_pass 127.0.0.1:2005;
+}
