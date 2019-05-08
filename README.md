@@ -104,6 +104,16 @@ int ffunc_main(int argc, char *argv[], ffunc_config_t *ffunc_conf) {
 #### for valgrind log, you will get the summary report after `kill -2 <pid>` 
 
 
+### Example of how to build a docker image 
+
+```bash
+cd DockerExample
+docker build -t nginx_ffunc -f Dockerfile_ngx_ffunc .
+docker run -d -p 80:80 --name testffunc nginx_ffunc
+curl "http://127.0.0.1/getProfile"
+```
+
+
 ### Logging Recommendation
 Due to built in logging mechanism will slow down the process speed, suggested to use third party logging mechanism for your application layer such as:-
 
