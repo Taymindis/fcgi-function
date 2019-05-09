@@ -81,10 +81,21 @@ int ffunc_main(int argc, char *argv[], ffunc_config_t *ffunc_conf) {
       fastcgi_pass 127.0.0.1:2005;
     }
 
+### Edit the httpd.conf in your httpd config folder by append in your block 
+
+```httpd
+<Location "/getProfile">
+    # Timeout values are in seconds
+    ProxyPass "fcgi://127.0.0.1:2005" connectiontimeout=300 timeout=300
+    ProxyPassReverse "fcgi://127.0.0.1:2005"
+    SetEnv  FN_HANDLER "getProfile"
+</Location>
+
+```
+
 ***You will see the FN_HANDLER is function name mapping with the function inside simple_service code, the fastcgi port 2005 is the service you start with(please look at step 10 for more details.***
 
-
-### start the nginx server
+### start the nginx/httpd server 
 
 ### Using apache benchmark for get request load test
 
