@@ -120,7 +120,7 @@ int ffunc_main(int argc, char *argv[], ffunc_config_t *ffunc_conf) {
 ```bash
 cd DockerExample
 docker build -t nginx_ffunc -f Dockerfile_ngx_ffunc .
-docker run -d -p 80:80 --name testffunc nginx_ffunc
+docker run -d -v ~/fcgi-function/DockerExample:/tmp -p 80:80 --name testffunc nginx_ffunc
 curl "http://127.0.0.1/getProfile"
 ```
 
