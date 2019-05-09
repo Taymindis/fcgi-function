@@ -1,6 +1,6 @@
 #Download base image NGINX
 # docker build -t nginx_ffunc -f Dockerfile_ngx_ffunc .
-# docker run -d -p 80:80 --name testffunc nginx_ffunc
+# docker run -d -v ~/fcgi-function/DockerExample:/tmp -p 80:80 --name testffunc nginx_ffunc
 FROM nginx
 
 # Update Software repository, install more libraries if you need it
@@ -14,15 +14,15 @@ RUN ["apt-get", "install", "-y", "make"]
 RUN ["apt-get", "install", "-y", "cmake"]
 RUN ["apt-get", "install", "-y", "git"]
 
-WORKDIR "/tmp"
+WORKDIR "/opt"
 RUN wget https://github.com/FastCGI-Archives/FastCGI.com/raw/master/original_snapshot/fcgi-2.4.1-SNAP-0910052249.tar.gz
 RUN tar -zxvf fcgi-2.4.1-SNAP-0910052249.tar.gz
-WORKDIR "/tmp/fcgi-2.4.1-SNAP-0910052249"
+WORKDIR "/opt/fcgi-2.4.1-SNAP-0910052249"
 RUN ./configure
 RUN make && make install
-WORKDIR "/tmp"
+WORKDIR "/opt"
 RUN git clone https://github.com/Taymindis/fcgi-function.git
-WORKDIR "/tmp/fcgi-function"
+WORKDIR "/opt/fcgi-function"
 
 RUN ldconfig
 #RUN gcc -I./ examples/profile_service_daemonize.c ffunc.c ffunc.h -lfcgi -pthread -ldl -rdynamic -o ffuncsample
@@ -32,9 +32,9 @@ RUN ldconfig
 
 
 # Configure Services
-COPY profile_service_daemonize.c /tmp/profile_service_daemonize.c
-COPY ffunc_profile /etc/nginx/conf.d/ffunc_profile
-COPY start_ffunc.sh /tmp/start_ffunc.sh
-RUN chmod 755 /tmp/start_ffunc.sh
+#COPY profile_service_daemonize.c /tmp/profile_service_daemonize.c
+#COPY ffunc_profile /etc/nginx/conf.d/ffunc_profile
+#COPY start_ffunc.sh /tmp/start_ffunc.sh
+#RUN chmod 755 /tmp/start_ffunc.sh
 WORKDIR "/tmp"
-CMD ["./start_ffunc.sh"]
+CMD chmod 755 /tmp/start_ffunc.sh && ./start_ffunc.sh

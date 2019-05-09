@@ -6,7 +6,7 @@ static int req_count = 0;
 FFUNC getProfile(ffunc_session_t * session) {
 	ffunc_write_out(session, "Status: 200 OK\r\n");
 	ffunc_write_out(session, "Content-Type: text/plain\r\n\r\n");/* \r\n\r\n  means go to response message*/
-	ffunc_write_out(session, "%s\n", "you are here");
+	ffunc_write_out(session, "%s\n", "you reach here, welcome to fcgi function container");
 	if (session->query_str) {
 		char *out = ffunc_get_query_param(session, "userId", sizeof("userId") - 1);
 		if (out)
