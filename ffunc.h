@@ -60,6 +60,10 @@ extern "C" {
 #if defined __GNUC__ || defined __CYGWIN__ || defined __MINGW32__ || defined __APPLE__
 		void(*app_init_handler)(void);
 		int daemon;
+#else
+#if defined _WIN32 || _WIN64 /*Windows*/
+		char* app_init_handler_name;
+#endif
 #endif
 
 		/* DO NOT USE THE VARIABLE BELOW */

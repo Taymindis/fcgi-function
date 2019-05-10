@@ -21,9 +21,9 @@ public:
 extern "C" {
 #endif
 
-void init_logger_in_instance(void);
+FFUNC init_logger_in_instance(void);
 
-void init_logger_in_instance() {
+FFUNC init_logger_in_instance() {
 	fprintf(stderr, "%s\n", "start instance");
 	fprintf(stderr, "%s\n", "init logging");
 }
@@ -66,7 +66,12 @@ FFUNC postProfile(ffunc_session_t * session) {
 
 int ffunc_main(int argc, char *argv[], ffunc_config_t *ffunc_conf) {
 	ffunc_conf->sock_port = 2005;
-	//memcpy(ffunc_conf->sock_port_str, "192.168.44.35:2005", sizeof("192.168.44.35:2005") - 1);
+	//ffunc_conf->sock_port_str = "localhost:2005";
+#if defined _WIN32 || _WIN64 /*Windows*/
+	ffunc_conf->app_init_handler_name = "init_logger_in_instance";
+#else 
+	ffunc_conf->app_init_handler = &init_logger_in_instance;
+#endif
 	ffunc_conf->backlog = 160;
 	ffunc_conf->max_thread = 64;
 	ffunc_parse_function(ffunc_conf, "getProfile", "postError", "postProfile");

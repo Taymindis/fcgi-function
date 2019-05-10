@@ -566,6 +566,7 @@ static void* mem_align(size_t size);
 static int ffunc_get_number_of_digit(long long number);
 static ffunc_pool* ffunc_recreate_pool(ffunc_pool *curr_p, size_t new_size);
 typedef void(*h)(ffunc_session_t*);
+typedef void(*inithandler)(void);
 static ffunc_str_t ffunc_proc_name;
 
 struct ffunc_handler {
@@ -584,10 +585,10 @@ struct ffunc_handler *dyna_funcs = NULL;
 
 static size_t max_std_input_buffer;
 
-static int ffunc_init(char** ffunc_nmap_func);
+static int ffunc_init(char** ffunc_nmap_func, char* init_handler_name);
 static int ffunc_strpos(const char *haystack, const char *needle);
 unsigned __stdcall ffunc_thread_worker(void *wrker);
-static int hook_socket(int sock_port, char* sock_port_str, int backlog, int max_thread, char** ffunc_nmap_func);
+static int hook_socket(int sock_port, char* sock_port_str, int backlog, int max_thread, char** ffunc_nmap_func, char* init_handler_name);
 static void ffunc_add_signal_handler(void);
 static void handle_request(FCGX_Request *request);
 static size_t ffunc_read_body_limit(ffunc_session_t * csession, ffunc_str_t *content);
@@ -612,7 +613,7 @@ h _ffunc_direct_consume;
 //     free(node);
 // }
 static int
-ffunc_init(char** ffunc_nmap_func) {
+ffunc_init(char** ffunc_nmap_func, char* init_handler_name) {
     int f;
     SIZE_T szof_func_name;
     usr_req_handle = GetModuleHandle(NULL);
@@ -641,14 +642,24 @@ ffunc_init(char** ffunc_nmap_func) {
         }
     }
 
+
+
     _ffunc_direct_consume = (h)GetProcAddress(usr_req_handle, "ffunc_direct_consume");
     if (!_ffunc_direct_consume) {
-        FFUNC_PRINTF(TEXT("direct consume is disabled"));
+        FFUNC_PRINTF(TEXT("direct consume is disabled\n"));
         _ffunc_direct_consume = &ffunc_default_direct_consume;
     }
     else {
-        FFUNC_PRINTF(TEXT("direct consume is enabled"));
+        FFUNC_PRINTF(TEXT("direct consume is enabled\n"));
     }
+
+	if (init_handler_name) {
+		inithandler initHandler = (inithandler)GetProcAddress(usr_req_handle, init_handler_name);
+		if (initHandler) {
+			initHandler();
+		}
+	}
+
     return 1;
 }
 
@@ -804,7 +815,8 @@ int ffunc_hook(char **argv, ffunc_config_t *conf, int bypassmaster) {
     int backlog = conf->backlog;
     int max_thread = conf->max_thread;
     char** ffunc_nmap_func = conf->ffunc_nmap_func;
-    size_t max_read_buffer = conf->max_read_buffer;
+	char* app_init_handler_name = conf->app_init_handler_name;
+	size_t max_read_buffer = conf->max_read_buffer;
     char* exec_name = conf->__exec_name;
     int totalPipeLength;
     TCHAR *pipenamebuff;
@@ -892,6 +904,10 @@ SPAWN_CHILD_PROC:
         FFUNC_SETENV("_FFUNC_ENV_SOCK_PORT_STR", sockport_str, 1);
     }
 
+	if (app_init_handler_name) {
+		FFUNC_SETENV("_FFUNC_ENV_INIT_HANDLER_NAME", app_init_handler_name, 1);
+	}
+
     if (backlog != 0) {
         backlog_str = malloc((ffunc_get_number_of_digit(backlog) + 1) * sizeof(char));
         snprintf(backlog_str, ffunc_get_number_of_digit(backlog) + 1, "%d", backlog);
@@ -971,7 +987,7 @@ CONTINUE_CHILD_PROCESS:
     FFUNC_PRINTF(TEXT("backlog=%d\n"), backlog);
     FFUNC_PRINTF(TEXT("%d threads \n"), max_thread);
     fprintf(stderr, "%s\n", "Press Ctrl-C to terminate the process....");
-    return hook_socket(sock_port, sock_port_str, backlog, max_thread, ffunc_nmap_func);
+    return hook_socket(sock_port, sock_port_str, backlog, max_thread, ffunc_nmap_func, conf->app_init_handler_name);
 }
 
 unsigned __stdcall
@@ -1000,7 +1016,7 @@ ffunc_thread_worker(void* wrker) {
 }
 
 static int
-hook_socket(int sock_port, char* sock_port_str, int backlog, int max_thread, char** ffunc_nmap_func) {
+hook_socket(int sock_port, char* sock_port_str, int backlog, int max_thread, char** ffunc_nmap_func, char* init_handler_name) {
     char *_pipeName;
     // #define MAX_PIPE_SIZE 256
     // TCHAR *pipeName;
@@ -1028,7 +1044,7 @@ hook_socket(int sock_port, char* sock_port_str, int backlog, int max_thread, cha
     }
 
     FCGX_Init();
-    if (!ffunc_init(ffunc_nmap_func)) {
+    if (!ffunc_init(ffunc_nmap_func, init_handler_name)) {
         exit(1);
     }
 
@@ -1092,7 +1108,8 @@ main(int argc, char *argv[]) {
         *backlog_str,
         *max_thread_str,
         *max_read_buffer_str,
-        *func_str;
+        *func_str, 
+		*init_handler_name;
 
     if (((sockport_str = FFUNC_GETENV("_FFUNC_ENV_SOCK_PORT")) || (sockport_str = FFUNC_GETENV("_FFUNC_ENV_SOCK_PORT_STR"))) &&
         (backlog_str = FFUNC_GETENV("_FFUNC_ENV_BACKLOG")) &&
@@ -1106,6 +1123,10 @@ main(int argc, char *argv[]) {
         } else if(FFUNC_GETENV("_FFUNC_ENV_SOCK_PORT_STR")) {
           conf->sock_port_str = sockport_str;
         }
+
+		if ( (init_handler_name = FFUNC_GETENV("_FFUNC_ENV_INIT_HANDLER_NAME")) ) {
+			conf->app_init_handler_name = init_handler_name;
+		}
 
         conf->backlog = atoi(backlog_str);
         conf->max_thread = atoi(max_thread_str);
