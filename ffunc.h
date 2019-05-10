@@ -51,6 +51,7 @@ extern "C" {
 
 	typedef struct {
 		int sock_port;
+		char* sock_port_str;
 		int backlog;
 		int max_thread;
 		char** ffunc_nmap_func;

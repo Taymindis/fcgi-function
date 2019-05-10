@@ -66,6 +66,7 @@ FFUNC postProfile(ffunc_session_t * session) {
 
 int ffunc_main(int argc, char *argv[], ffunc_config_t *ffunc_conf) {
 	ffunc_conf->sock_port = 2005;
+	//memcpy(ffunc_conf->sock_port_str, "192.168.44.35:2005", sizeof("192.168.44.35:2005") - 1);
 	ffunc_conf->backlog = 160;
 	ffunc_conf->max_thread = 64;
 	ffunc_parse_function(ffunc_conf, "getProfile", "postError", "postProfile");

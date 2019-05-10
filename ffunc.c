@@ -56,7 +56,7 @@ static size_t max_std_input_buffer;
 static int ffunc_init(char** ffunc_nmap_func);
 static int ffunc_strpos(const char *haystack, const char *needle);
 void *ffunc_thread_worker(void* wrker);
-static int hook_socket(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func, int* procpip);
+static int hook_socket(int sock_port, char* sock_port_str, int backlog, int max_thread, char** ffunc_nmap_func, int* procpip);
 static void ffunc_add_signal_handler(void);
 static void handle_request(FCGX_Request *request);
 static size_t ffunc_read_body_limit(ffunc_session_t * csession, ffunc_str_t *content);
@@ -243,6 +243,7 @@ ffunc_hook(ffunc_config_t *conf) {
     int procpip[2];
     char pipbuf[FFUNC_APP_INIT_PIPE_BUF_SIZE];
     int sock_port = conf->sock_port;
+    char* sock_port_str = conf->sock_port_str;
     int backlog = conf->backlog;
     int max_thread = conf->max_thread;
     char** ffunc_nmap_func = conf->ffunc_nmap_func;
@@ -256,7 +257,7 @@ ffunc_hook(ffunc_config_t *conf) {
         ffunc_read_body = &ffunc_read_body_nolimit;
     }
 
-    if (sock_port <= 0) {
+    if (sock_port <= 0 && sock_port_str == NULL) {
         ffunc_print("%s\n", "sock_port has no defined...");
         return 1;
     }
@@ -277,7 +278,11 @@ ffunc_hook(ffunc_config_t *conf) {
     }
 
     ffunc_print("%s\n", "Service starting");
-    ffunc_print("sock_port=%d, backlog=%d\n", sock_port, backlog);
+	if (sock_port) {
+		ffunc_print("sock_port=%d, backlog=%d\n", sock_port, backlog);
+	} else if(sock_port_str) {
+		ffunc_print("sock_port=%s, backlog=%d\n", sock_port_str, backlog);
+	}
     /** Do master pipe before fork **/
     if (pipe(procpip) < 0)
         exit(1);
@@ -311,7 +316,7 @@ FFUNC_WORKER_RESTART:
             if (conf->app_init_handler) {
                 conf->app_init_handler();
             }
-            return hook_socket(sock_port, backlog, max_thread, ffunc_nmap_func, procpip);
+            return hook_socket(sock_port, sock_port_str, backlog, max_thread, ffunc_nmap_func, procpip);
         }
         else { // Parent process
             while (1) {
@@ -367,7 +372,7 @@ ffunc_thread_worker(void* wrker) {
 }
 
 static int
-hook_socket(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func, int* procpip) {
+hook_socket(int sock_port, char *sock_port_str, int backlog, int max_thread, char** ffunc_nmap_func, int* procpip) {
     char pipbuf[FFUNC_APP_INIT_PIPE_BUF_SIZE];
     FCGX_Init();
     if (!ffunc_init(ffunc_nmap_func)) {
@@ -382,15 +387,19 @@ hook_socket(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func, 
 
     worker_t->accept_mutex = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER; // this is lock for all threads
     int i;
-    sprintf(port_str, ":%d", sock_port);
 
     if (sock_port) {
+        sprintf(port_str, ":%d", sock_port);
         if (backlog)
             worker_t->fcgi_func_socket = FCGX_OpenSocket(port_str, backlog);
         else
             worker_t->fcgi_func_socket = FCGX_OpenSocket(port_str, 50);
-    }
-    else {
+    } else if(sock_port_str) {
+      if (backlog)
+          worker_t->fcgi_func_socket = FCGX_OpenSocket(sock_port_str, backlog);
+      else
+          worker_t->fcgi_func_socket = FCGX_OpenSocket(sock_port_str, 50);
+    } else {
         ffunc_print("%s\n", "argument wrong");
         exit(1);
     }
@@ -401,7 +410,6 @@ hook_socket(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func, 
     }
 
     ffunc_print("%d threads \n", max_thread);
-    ffunc_print("Socket on hook %d\n", sock_port);
 
     /** Release for success initialized **/
     read(procpip[0], pipbuf, FFUNC_APP_INIT_PIPE_BUF_SIZE);
@@ -470,7 +478,7 @@ main(int argc, char *argv[]) {
 
     if (FFUNC_GETENV(_FFUNC_MASTER_ENV)) {
         conf = (ffunc_config_t*)calloc(1, sizeof(ffunc_config_t));
-
+        conf->sock_port_str = NULL;
         ffunc_proc_name.data = argv[0];
         ffunc_proc_name.len = strlen(argv[0]);
 
@@ -579,7 +587,7 @@ static size_t max_std_input_buffer;
 static int ffunc_init(char** ffunc_nmap_func);
 static int ffunc_strpos(const char *haystack, const char *needle);
 unsigned __stdcall ffunc_thread_worker(void *wrker);
-static int hook_socket(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func);
+static int hook_socket(int sock_port, char* sock_port_str, int backlog, int max_thread, char** ffunc_nmap_func);
 static void ffunc_add_signal_handler(void);
 static void handle_request(FCGX_Request *request);
 static size_t ffunc_read_body_limit(ffunc_session_t * csession, ffunc_str_t *content);
@@ -792,6 +800,7 @@ console_ctrl_handler(DWORD ctrl) {
 /**Main Hook**/
 int ffunc_hook(char **argv, ffunc_config_t *conf, int bypassmaster) {
     int sock_port = conf->sock_port;
+    char* sock_port_str = conf->sock_port_str;
     int backlog = conf->backlog;
     int max_thread = conf->max_thread;
     char** ffunc_nmap_func = conf->ffunc_nmap_func;
@@ -801,7 +810,7 @@ int ffunc_hook(char **argv, ffunc_config_t *conf, int bypassmaster) {
     TCHAR *pipenamebuff;
 
 
-    if (sock_port <= 0) {
+    if (sock_port <= 0 && sock_port_str == NULL) {
         FFUNC_PRINTF(TEXT("%s\n"), TEXT("sock_port has no defined..."));
         return 1;
     }
@@ -877,6 +886,10 @@ SPAWN_CHILD_PROC:
         sockport_str = malloc((ffunc_get_number_of_digit(sock_port) + 1) * sizeof(char));
         snprintf(sockport_str, ffunc_get_number_of_digit(sock_port) + 1, "%d", sock_port);
         FFUNC_SETENV("_FFUNC_ENV_SOCK_PORT", sockport_str, 1);
+    } else if (sock_port_str != NULL) {
+        sockport_str = calloc((strlen(sock_port_str) + 1), sizeof(char));
+        memcpy(sockport_str, sock_port_str, strlen(sock_port_str));
+        FFUNC_SETENV("_FFUNC_ENV_SOCK_PORT_STR", sockport_str, 1);
     }
 
     if (backlog != 0) {
@@ -949,11 +962,16 @@ FFUNC_WORKER_RESTART:
 CONTINUE_CHILD_PROCESS:
 
     FFUNC_PRINTF(TEXT("%s\n"), TEXT("Service starting"));
-    FFUNC_PRINTF(TEXT("Socket port on hook %d\n"), sock_port);
+	if (sock_port) {
+		FFUNC_PRINTF(TEXT("Socket port on hook %d\n"), sock_port);
+	}
+	else if(sock_port_str){
+		FFUNC_PRINTF(TEXT("Socket port str on hook %s\n"), sock_port_str);
+	}
     FFUNC_PRINTF(TEXT("backlog=%d\n"), backlog);
     FFUNC_PRINTF(TEXT("%d threads \n"), max_thread);
     fprintf(stderr, "%s\n", "Press Ctrl-C to terminate the process....");
-    return hook_socket(sock_port, backlog, max_thread, ffunc_nmap_func);
+    return hook_socket(sock_port, sock_port_str, backlog, max_thread, ffunc_nmap_func);
 }
 
 unsigned __stdcall
@@ -982,7 +1000,7 @@ ffunc_thread_worker(void* wrker) {
 }
 
 static int
-hook_socket(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func) {
+hook_socket(int sock_port, char* sock_port_str, int backlog, int max_thread, char** ffunc_nmap_func) {
     char *_pipeName;
     // #define MAX_PIPE_SIZE 256
     // TCHAR *pipeName;
@@ -1022,13 +1040,18 @@ hook_socket(int sock_port, int backlog, int max_thread, char** ffunc_nmap_func) 
 
     worker_t->accept_mutex = CreateMutex(NULL, FALSE, NULL); // this is lock for all threads
     int i;
-    sprintf_s(port_str, sizeof port_str, ":%d", sock_port);
 
     if (sock_port) {
+        sprintf_s(port_str, sizeof port_str, ":%d", sock_port);
         if (backlog)
             worker_t->fcgi_func_socket = FCGX_OpenSocket(port_str, backlog);
         else
             worker_t->fcgi_func_socket = FCGX_OpenSocket(port_str, 50);
+    } else if(sock_port_str) {
+      if (backlog)
+          worker_t->fcgi_func_socket = FCGX_OpenSocket(sock_port_str, backlog);
+      else
+          worker_t->fcgi_func_socket = FCGX_OpenSocket(sock_port_str, 50);
     }
     else {
         FFUNC_PRINTF(TEXT("%s\n"), TEXT("argument wrong"));
@@ -1071,13 +1094,19 @@ main(int argc, char *argv[]) {
         *max_read_buffer_str,
         *func_str;
 
-    if ((sockport_str = FFUNC_GETENV("_FFUNC_ENV_SOCK_PORT")) &&
+    if (((sockport_str = FFUNC_GETENV("_FFUNC_ENV_SOCK_PORT")) || (sockport_str = FFUNC_GETENV("_FFUNC_ENV_SOCK_PORT_STR"))) &&
         (backlog_str = FFUNC_GETENV("_FFUNC_ENV_BACKLOG")) &&
         (max_thread_str = FFUNC_GETENV("_FFUNC_ENV_MAX_THREAD")) &&
         (func_str = FFUNC_GETENV("_FFUNC_ENV_FUNC_str"))
         ) {
         conf = calloc(1, sizeof(ffunc_config_t));
-        conf->sock_port = atoi(sockport_str);
+
+        if(FFUNC_GETENV("_FFUNC_ENV_SOCK_PORT")) {
+          conf->sock_port = atoi(sockport_str);
+        } else if(FFUNC_GETENV("_FFUNC_ENV_SOCK_PORT_STR")) {
+          conf->sock_port_str = sockport_str;
+        }
+
         conf->backlog = atoi(backlog_str);
         conf->max_thread = atoi(max_thread_str);
         if ((max_read_buffer_str = FFUNC_GETENV("_FFUNC_ENV_MAX_READ_BUF"))) {
@@ -1111,6 +1140,7 @@ main(int argc, char *argv[]) {
     }
     else if ((exec_name = FFUNC_GETENV(_FFUNC_MASTER_ENV))) {
         conf = calloc(1, sizeof(ffunc_config_t));
+        conf->sock_port_str = NULL;
         conf->__exec_name = exec_name;
         ffunc_proc_name.data = argv[0];
         ffunc_proc_name.len = strlen(argv[0]);
