@@ -105,9 +105,11 @@ char *x =(char*) malloc(len); \
 #define ffunc_write_http_not_found_status(_csession) ffunc_write_out(_csession, "Status: 404 Not Found\r\n")
 #define ffunc_write_http_internal_error_status(_csession) ffunc_write_out(_csession, "Status: 500 Internal Server Error\r\n")
 #define ffunc_write_http_no_content_status(_csession) ffunc_write_out(_csession, "Status: 204 No Content\r\n")
-#define ffunc_write_default_header(_csession) ffunc_write_out(_csession, "Content-Type: application/x-www-form-urlencoded\r\n\r\n")
+#define ffunc_write_textplain_header(_csession) ffunc_write_out(_csession, "Content-Type: text/plain\r\n\r\n")
+#define ffunc_write_default_header(_csession) ffunc_write_out(_csession, "Content-Type: text/plain\r\n\r\n")
 #define ffunc_write_jsonp_header(_csession) ffunc_write_out(_csession, "Content-Type: application/javascript\r\n\r\n")
 #define ffunc_write_json_header(_csession) ffunc_write_out(_csession, "Content-Type: application/json\r\n\r\n")
+#define ffunc_write_xwwwformurlenc_header(_csession) ffunc_write_out(_csession, "Content-Type: application/x-www-form-urlencoded\r\n\r\n")
 
 #ifdef __cplusplus
 }
